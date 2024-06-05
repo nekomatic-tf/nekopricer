@@ -15,7 +15,7 @@
         "collection": "listings"
     },
     "minio": {
-        "host": "",
+        "endpoint": "",
         "key": "",
         "secret": "",
         "bucket": "",
