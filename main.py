@@ -9,6 +9,7 @@ import src.server as server
 from src.storage import MinIOEngine
 from minio import S3Error
 from src.backpacktf import BackpackTF
+from src.pricer import Pricer
 from threading import Thread, Event
 
 async def main():
@@ -53,6 +54,16 @@ async def main():
 
     backpacktf_thread = Thread(target=websocket.start_websocket, args=[event])
     backpacktf_thread.start()
+
+    pricer = Pricer(
+        mongo_uri=mongo_config["uri"],
+        database_name=mongo_config["db"],
+        collection_name=mongo_config["collection"],
+        storage_engine=storage_engine,
+        items=item_list["items"]
+    )
+    pricer_thread = Thread(target=pricer.start, args=[event])
+    pricer_thread.start()
     
     server.start(config)
     event.set()
