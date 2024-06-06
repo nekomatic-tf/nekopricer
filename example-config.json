@@ -11,7 +11,7 @@
     "steamAPIKey": "",
     "mongo": {
         "uri": "mongodb://",
-        "name": "backpacktf",
+        "db": "backpacktf",
         "collection": "listings"
     },
     "minio": {
