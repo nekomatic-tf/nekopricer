@@ -3,12 +3,12 @@
 import logging
 from flask import Flask
 
-class PricerAPIServer:
-    logger = logging.getLogger(__name__)
-    app = Flask(__name__)
-    def __init__(self, config: dict):
-        self.app.run(
-            host=config["host"],
-            port=config["port"]
-        )
-        self.logger.debug("Started API server.")
+logger = logging.getLogger(__name__)
+app = Flask(__name__)
+
+def start(config: dict):
+    logger.debug("Starting API server...")
+    app.run(
+        host=config["host"],
+        port=config["port"]
+    )

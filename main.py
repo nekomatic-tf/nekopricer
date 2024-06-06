@@ -5,6 +5,7 @@ import logging
 import sys
 from asyncio import run
 from json import load
+import src.server as server
 
 async def main():
     logging.basicConfig(
@@ -20,6 +21,8 @@ async def main():
 
     with open("config.json", "r") as f:
         config = load(f)
+    
+    server.start(config)
 
 if __name__ == "__main__":
     run(main())
