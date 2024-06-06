@@ -5,6 +5,7 @@ from src.database import ListingDBManager
 from httpx import AsyncClient
 from time import time
 import logging
+from threading import Event
 
 class BackpackTF:
     logger = logging.getLogger(__name__)
@@ -112,11 +113,15 @@ class BackpackTF:
         await self.mongodb.update_snapshot_time(item_name, snapshot_time)
         self.snapshot_times[item_name] = snapshot_time
 
-    async def refresh_snapshots(self) -> None:
+    async def refresh_snapshots(self, event: Event) -> None:
         self.logger.info("Refreshing snapshots...")
         self.logger.debug("Refreshing all items one time...")
         # Snapshot everything, once
+        if event.is_set():
+            return
         for item in self.prioritized_items:
+            if event.is_set():
+                break
             try:
                 await self.update_snapshot(item)
                 self.logger.info(f"Refreshed snapshot for {item}")
@@ -126,6 +131,8 @@ class BackpackTF:
         await sleep(1)
 
         while True:
+            if event.is_set():
+                break
             self.snapshot_times = await self.mongodb.get_all_snapshot_times()
             oldest_prioritized_items = sorted(
                 ((k, v) for k, v in self.snapshot_times.items() if k in self.prioritized_items.copy()),
@@ -138,6 +145,8 @@ class BackpackTF:
             oldest_items = [item[0] for item in oldest_items]'''
 
             for item in oldest_prioritized_items:
+                if event.is_set():
+                    break
                 try:
                     await self.update_snapshot(item)
                     self.logger.info(f"Refreshed snapshot for {item}")
@@ -158,12 +167,12 @@ class BackpackTF:
 
             await sleep(1)
     
-    def start_websocket(self):
-        run(self._start_websocket())
+    def start_websocket(self, event: Event):
+        run(self._start_websocket(event))
 
-    async def _start_websocket(self) -> None:
+    async def _start_websocket(self, event: Event) -> None:
         await self.mongodb.delete_old_listings(172800 + time())  # 2 days
-        create_task(self.refresh_snapshots())
+        create_task(self.refresh_snapshots(event))
 
         # Create index on name
         await self.mongodb.create_index()
@@ -176,32 +185,39 @@ class BackpackTF:
                         ping_interval=60,
                         ping_timeout=120
                 ) as websocket:
-                    await self.handle_websocket(websocket)
+                    await self.handle_websocket(websocket, event)
+                    if event.is_set():
+                        break
                     await Future()  # keep the connection open
             except (websockets.ConnectionClosedError, websockets.ConnectionClosedOK, websockets.ConnectionClosed) as e:
                 self.logger.warn(f"Connection closed: {e}, trying to reconnect")
                 continue
-
             except KeyboardInterrupt:
                 break
+        if event.is_set():
+            return
 
-    async def handle_websocket(self, websocket):
+    async def handle_websocket(self, websocket, event: Event):
         self.logger.info("Connected to backpack.tf websocket!")
         listing_count = 0
 
         async for message in websocket:
+            if event.is_set():
+                return
             self.logger.info(f"Received {listing_count} events")
 
             json_data = loads(message)
 
             if isinstance(json_data, list):
-                create_task(self.handle_list_events(json_data))
+                create_task(self.handle_list_events(json_data, event))
                 listing_count += len(json_data)
             else:
-                create_task(self.handle_event(json_data, json_data.get("event")))
+                create_task(self.handle_event(json_data, json_data.get("event"), event))
                 listing_count += 1
 
-    async def handle_event(self, data: dict, event: str) -> None:
+    async def handle_event(self, data: dict, event: str, thread_event: Event) -> None:
+        if thread_event.is_set():
+            return
         # If no data is provided, exit the function
         if not data:
             return
@@ -227,7 +243,9 @@ class BackpackTF:
             case _:
                 return
 
-    async def handle_list_events(self, events: list) -> None:
+    async def handle_list_events(self, events: list, thread_event: Event) -> None:
+        if thread_event.is_set():
+            return
         listings_to_update = {"insert": list(), "delete": list()}
         for event in events:
             data = event.get("payload", dict())

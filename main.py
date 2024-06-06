@@ -8,8 +8,8 @@ from json import load, loads
 import src.server as server
 from src.storage import MinIOEngine
 from minio import S3Error
-from src.thread import StoppableThread
 from src.backpacktf import BackpackTF
+from threading import Thread, Event
 
 async def main():
     logging.basicConfig(
@@ -40,6 +40,8 @@ async def main():
     bptf_config = config["backpacktf"]
     mongo_config = config["mongo"]
 
+    event = Event()
+
     websocket = BackpackTF(
         mongo_uri=mongo_config["uri"],
         database_name=mongo_config["db"],
@@ -49,11 +51,11 @@ async def main():
         prioritized_items=item_list["items"]
     )
 
-    backpacktf_thread = StoppableThread(target=websocket.start_websocket)
+    backpacktf_thread = Thread(target=websocket.start_websocket, args=[event])
     backpacktf_thread.start()
     
     server.start(config)
-
+    event.set()
 
 if __name__ == "__main__":
     run(main())

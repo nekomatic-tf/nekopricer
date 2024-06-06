@@ -2,7 +2,6 @@ import motor.motor_asyncio
 from pymongo import UpdateOne
 from pymongo.server_api import ServerApi
 
-
 class ListingDBManager:
     def __init__(self, mongo_uri: str, database_name: str, collection_name: str):
         self.client = motor.motor_asyncio.AsyncIOMotorClient(mongo_uri, server_api=ServerApi('1'))
