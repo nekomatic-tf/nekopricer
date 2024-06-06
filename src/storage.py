@@ -36,8 +36,8 @@ class MinIOEngine:
                 bucket_name=self.bucket,
                 object_name=file
             )
-            self.logger.info("Read file " + file)
+            self.logger.info("Read " + file)
             return content.data.decode(encoding="utf-8")
         except Exception as e:
-            self.logger.error("Error reading file " + file + ": " + str(e))
+            self.logger.error("Error reading " + file + ": " + str(e))
             return e
