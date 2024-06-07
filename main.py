@@ -10,7 +10,9 @@ from src.storage import MinIOEngine
 from minio import S3Error
 from src.backpacktf import BackpackTF
 from src.pricer import Pricer
-from threading import Thread, Event
+from threading import Thread
+from os import kill, getpid
+from signal import SIGABRT
 
 async def main():
     logging.basicConfig(
@@ -28,21 +30,19 @@ async def main():
         config = load(f)
     
     minio_config = config["minio"]
-    storage_engine = MinIOEngine(config=minio_config)
+    engine = MinIOEngine(config=minio_config)
 
-    item_list = storage_engine.read_file("item_list.json")
+    item_list = engine.read_file("item_list.json")
     if (type(item_list) == S3Error):
         logger.warn("Creating item_list.json")
-        storage_engine.write_file("item_list.json", "{\"items\": []}")
-        item_list = storage_engine.read_file("item_list.json")
+        engine.write_file("item_list.json", "{\"items\": []}")
+        item_list = engine.read_file("item_list.json")
     item_list = loads(item_list)
     logger.info("Updated allowed items!")
     
     bptf_config = config["backpacktf"]
     mongo_config = config["mongo"]
-
-    event = Event()
-
+    
     websocket = BackpackTF(
         mongo_uri=mongo_config["uri"],
         database_name=mongo_config["db"],
@@ -52,21 +52,23 @@ async def main():
         prioritized_items=item_list["items"]
     )
 
-    backpacktf_thread = Thread(target=websocket.start_websocket, args=[event])
+    backpacktf_thread = Thread(target=websocket.start_websocket)
     backpacktf_thread.start()
 
     pricer = Pricer(
         mongo_uri=mongo_config["uri"],
         database_name=mongo_config["db"],
         collection_name=mongo_config["collection"],
-        storage_engine=storage_engine,
-        items=item_list["items"]
+        storage_engine=engine,
+        items=item_list["items"],
+        socket_io=server.socket_io
     )
-    pricer_thread = Thread(target=pricer.start, args=[event])
+    pricer_thread = Thread(target=pricer.start)
     pricer_thread.start()
-    
     server.start(config)
-    event.set()
+
+    logger.debug("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
+    kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.
 
 if __name__ == "__main__":
     run(main())
