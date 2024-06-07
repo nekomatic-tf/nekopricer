@@ -28,7 +28,7 @@ class MinIOEngine:
             data=data,
             length=len(content)
         )
-        self.logger.info("Wrote " + file)
+        self.logger.debug("Wrote " + file)
 
     def read_file(self, file: str):
         try:
@@ -36,7 +36,7 @@ class MinIOEngine:
                 bucket_name=self.bucket,
                 object_name=file
             )
-            self.logger.info("Read " + file)
+            self.logger.debug("Read " + file)
             return content.data.decode(encoding="utf-8")
         except Exception as e:
             self.logger.error("Error reading " + file + ": " + str(e))

@@ -11,6 +11,7 @@ from time import sleep, time
 from src.server import socket_io
 from minio import S3Error
 from json import loads, dumps
+import requests
 
 class Pricer():
     logger = logging.getLogger(__name__)
@@ -34,28 +35,23 @@ class Pricer():
         return
     
     def start(self):
-        run(self._run())
-    
-    async def _run(self):
-        await self._refresh_key_price() # Refresh before doing literally anything
+        self._refresh_key_price() # Refresh before doing literally anything
         key_thread = Thread(target=self.refresh_key_price)
         key_thread.start()
-        await self.price_items()
+        self.price_items()
         return
     
     def refresh_key_price(self):
-        run(self._refresh_key_price())
+        self._refresh_key_price()
         sleep(300) # 5 minutes of eepy
-        self.refresh_key_price()
     
-    async def _refresh_key_price(self):
+    def _refresh_key_price(self):
         try:
-            pricelist_array = await self.get_pricelist_array()
-            print(pricelist_array)
+            pricelist_array = self.get_pricelist_array()
             if not type(pricelist_array) == list:
                 raise Exception("Failed to get external pricelist array.")
             self.pricelist_array = pricelist_array
-            key_price = await self.get_external_price("5021;6")
+            key_price = self.get_external_price("5021;6")
             if not type(key_price) == dict:
                 raise Exception("Failed to get key price.")
             self.key_price = key_price
@@ -65,34 +61,50 @@ class Pricer():
         except Exception as e:
             self.logger.error(str(e))
 
-
-    async def price_items(self):
+    def price_items(self):
         # Get all the SKUs
+        total = 0
+        remaining = 0
         try:
-            skus = await self.http_client.post(f"{self.schema_server_url}/getSku/fromNameBulk", json=self.items)
+            skus = requests.post(f"{self.schema_server_url}/getSku/fromNameBulk", json=self.items)
+            total = len(skus.json()["skus"])
+            remaining = total
             if not skus.status_code == 200:
                 raise Exception("Issue converting names to SKUs.")
             if not type(skus.json()) == dict:
                 raise Exception("Issue converting names to SKUs.")
             for sku in skus.json()["skus"]:
                 if sku == "5021;6":
-                    return # Skip the key
-                price = await self.get_external_price(sku)
+                    remaining = remaining - 1
+                    continue # Skip the key
+                price = self.get_external_price(sku)
                 self.update_pricelist_file(price)
-                #socket_io.emit("price", price)
-            print("snoozing")
+                remaining = remaining - 1
+                self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}")
+            # Instead of getting more stupid code, better to just re read the pricelist.json and then emit all the prices in it.
+            pricelist = self.storage_engine.read_file("pricelist.json")
+            if (type(pricelist) == S3Error):
+                raise Exception("Failed to read pricelist.json!")
+            prices = loads(pricelist)["items"]
+            total = len(prices)
+            remaining = 0
+            for price in prices:
+                socket_io.emit("price", price)
+                remaining = remaining + 1
+                self.logger.info(f"({remaining} out of {total}) Emitted price for {price["name"]}/{price["sku"]}")
+                sleep(0.3)
             sleep(5) # Every 5 minutes, just temporary
-            print("snoozed")
-            await self.price_items()
+            self.price_items()
             return
         except Exception as e:
             self.logger.error(e)
 
     
-    async def get_external_price(self, sku: str) -> dict: # Properly formats a prices.tf price.
+    def get_external_price(self, sku: str) -> dict: # Properly formats a prices.tf price.
         try:
             for item in self.pricelist_array:
                 if sku == "5021;6": # Nope, get fallback'd
+                    self.logger.warn("Ignore below error, item is SKU 5021;6!")
                     break
                 if sku == item["sku"]:
                     return item
@@ -100,7 +112,7 @@ class Pricer():
             self.logger.debug("Failed to find item in pricelist array, calling prices.tf")
             self.prices_tf.request_access_token()
             item = self.prices_tf.get_price(sku)
-            item_name = await self.http_client.get(f"{self.schema_server_url}/getName/fromSku/{sku}")
+            item_name = requests.get(f"{self.schema_server_url}/getName/fromSku/{sku}")
             if not item_name.status_code == 200:
                 raise Exception(f"Failed to fetch get name for {sku}")
             item_name = item_name.json()["name"]
@@ -116,9 +128,9 @@ class Pricer():
         except Exception as e:
             return e
     
-    async def get_pricelist_array(self):
+    def get_pricelist_array(self):
         try:
-            response = await self.http_client.get("https://autobot.tf/json/pricelist-array")
+            response = requests.get("https://autobot.tf/json/pricelist-array")
             if not response.status_code == 200:
                 raise Exception("Failed to fetch external pricelist.")
             if not len(response.json()["items"]) > 0:
