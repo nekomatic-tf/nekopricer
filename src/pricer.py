@@ -5,12 +5,14 @@ from src.database import ListingDBManager
 from src.storage import MinIOEngine
 from asyncio import new_event_loop
 import requests
-from src.helpers import set_interval, compare_prices
+from src.helpers import set_interval, compare_prices, set_interval_and_wait
 from tf2_utils import PricesTF
 from time import time
 from minio import S3Error
 from json import loads, dumps
 from flask_socketio import SocketIO
+from time import sleep
+from threading import Thread
 
 class Pricer:
     logger = logging.getLogger(__name__)
@@ -21,13 +23,15 @@ class Pricer:
             collection_name: str,
             storage_engine: MinIOEngine,
             schema_server_url: str,
-            socket_io: SocketIO
+            socket_io: SocketIO,
+            pricing_interval: float
     ):
         self.database = ListingDBManager(mongo_uri, database_name, collection_name)
         self.event_loop = new_event_loop()
         self.storage_engine = storage_engine
         self.schema_server_url = schema_server_url
         self.socket_io = socket_io
+        self.pricing_interval = pricing_interval
         # Get the pricelist and item list
         self.pricelist_array = dict()
         self.key_price = dict()
@@ -41,9 +45,10 @@ class Pricer:
         self.write_pricelist() # For good measure
         self.update_pricelist_array()
         self.update_key_price()
-
         set_interval(self.update_pricelist_array, 300) # 5 Minutes
-        set_interval(self.update_key_price, 5) # 5 Minutes
+        set_interval(self.update_key_price, 300) # 5 Minutes
+        Thread(target=self.price_items).start() # Price items ONE time during startup
+        set_interval_and_wait(self.price_items, pricing_interval)
         return
     
     # Tasks
@@ -73,7 +78,42 @@ class Pricer:
         except Exception as e:
             self.logger.error("Failed to update the pricelist array.")
             self.logger.error(e)
-    
+
+    def price_items(self):
+        # Get all the SKUs
+        total = 0
+        remaining = 0
+        try:
+            skus = requests.post(f"{self.schema_server_url}/getSku/fromNameBulk", json=self.items["items"])
+            if not skus.status_code == 200:
+                raise Exception("Issue converting names to SKUs.")
+            if not type(skus.json()) == dict:
+                raise Exception("Issue converting names to SKUs.")
+            skus = skus.json()["skus"]
+            total = len(skus)
+            remaining = total
+            skus = [{"sku": sku, "name": name} for sku, name in zip(skus, self.items["items"])] # Produce a reasonable format iterate
+            for sku in skus:
+                if sku["sku"] == "5021;6":
+                    remaining = remaining - 1
+                    continue # Skip the key
+                #listings = self.event_loop.run_until_complete(self.database.get_listings(sku["name"]))
+                price = self.get_external_price(sku["sku"])
+                self.update_pricelist(price)
+                remaining = remaining - 1
+                self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}")
+            self.write_pricelist()
+            prices = self.pricelist["items"]
+            total = len(prices)
+            remaining = 0
+            for price in prices:
+                self.socket_io.emit("price", price)
+                remaining = remaining + 1
+                self.logger.info(f"({remaining} out of {total}) Emitted price for {price["name"]}/{price["sku"]}")
+                sleep(0.3)
+        except Exception as e:
+            self.logger.error(e)
+
     # Functions
     def get_external_price(self, sku: str) -> dict:
         try:
@@ -117,14 +157,9 @@ class Pricer:
             if not existing_index == -1:
                 pl_item = items[existing_index]
                 if item["buy"] and item["sell"] and pl_item["buy"] and pl_item["sell"]:
-                    if compare_prices(pl_item["buy"], item["buy"]) and compare_prices(pl_item["sell"], item["sell"]):
-                        self.logger.debug(f"Skipping price update for {item["name"]}/{item["sku"]} (Price hasn't changed).")
-                        # Prices are the same, no need to update
-                        return
-                    else:
-                        # Prices are different, update.
-                        items[existing_index] = item
-                        self.logger.debug(f"Updated price for {item["name"]}/{item["sku"]}")
+                    # Update prices
+                    items[existing_index] = item
+                    self.logger.debug(f"Updated price for {item["name"]}/{item["sku"]}")
                 elif item["buy"] and item["sell"] and (not pl_item["buy"] or not pl_item["sell"]):
                     # We have a buy and sell price, but the pricelist item doesn't.
                     items[existing_index] = item

@@ -7,7 +7,7 @@ from json import load
 from src.storage import MinIOEngine
 from src.backpacktf import BackpackTF
 from threading import Thread
-from flask import Flask
+from flask import Flask, Response
 from flask_socketio import SocketIO
 from src.pricer import Pricer
 
@@ -32,6 +32,7 @@ bptf_config = config["backpackTf"]
 ptf_config = config["pricesTf"]
 mongo_config = config["mongo"]
 minio_config = config["minio"]
+interval_config = config["intervals"]
 
 logger.debug("Starting storage engine...")
 engine = MinIOEngine(minio_config)
@@ -43,7 +44,8 @@ pricer = Pricer(
     collection_name=mongo_config["collection"],
     storage_engine=engine,
     schema_server_url=ptf_config["schemaServer"],
-    socket_io=socket_io
+    socket_io=socket_io,
+    pricing_interval=interval_config["price"]
 )
 backpacktf = BackpackTF(
     mongo_uri=mongo_config["uri"],
@@ -57,6 +59,18 @@ backpacktf = BackpackTF(
 logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
 #websocket_thread.start()
+
+# Routes
+@app.get("/items")
+def get_items():
+    return pricer.pricelist
+
+@app.get("/items/<sku>")
+def get_item(sku: str):
+    for item in pricer.pricelist["items"]:
+        if item["sku"] == sku:
+            return item
+    return Response(status=404)
 
 logger.debug("Starting API server...")
 app.run(
