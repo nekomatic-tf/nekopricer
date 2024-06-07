@@ -24,14 +24,24 @@ class Pricer:
             storage_engine: MinIOEngine,
             schema_server_url: str,
             socket_io: SocketIO,
-            pricing_interval: float
-    ):
+            pricing_interval: float,
+            max_percentage_differences: dict,
+            excluded_steam_ids: list,
+            trusted_steam_ids: list,
+            excluded_listing_descriptions: list,
+            blocked_attributes: dict
+    ):    
         self.database = ListingDBManager(mongo_uri, database_name, collection_name)
         self.event_loop = new_event_loop()
         self.storage_engine = storage_engine
         self.schema_server_url = schema_server_url
         self.socket_io = socket_io
         self.pricing_interval = pricing_interval
+        self.max_percentage_differences = max_percentage_differences
+        self.excluded_steam_ids = excluded_steam_ids
+        self.trusted_steam_ids = trusted_steam_ids
+        self.excluded_listing_descriptions = excluded_listing_descriptions
+        self.blocked_attributes = blocked_attributes
         # Get the pricelist and item list
         self.pricelist_array = dict()
         self.key_price = dict()
@@ -83,7 +93,11 @@ class Pricer:
         # Get all the SKUs
         total = 0
         remaining = 0
+        custom = 0
+        pricestf = 0
+        failed = 0
         try:
+            self.update_pricelist_array() # Update before pricing
             skus = requests.post(f"{self.schema_server_url}/getSku/fromNameBulk", json=self.items["items"])
             if not skus.status_code == 200:
                 raise Exception("Issue converting names to SKUs.")
@@ -94,14 +108,31 @@ class Pricer:
             remaining = total
             skus = [{"sku": sku, "name": name} for sku, name in zip(skus, self.items["items"])] # Produce a reasonable format iterate
             for sku in skus:
-                if sku["sku"] == "5021;6":
-                    remaining = remaining - 1
-                    continue # Skip the key
-                #listings = self.event_loop.run_until_complete(self.database.get_listings(sku["name"]))
-                price = self.get_external_price(sku["sku"])
-                self.update_pricelist(price)
-                remaining = remaining - 1
-                self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}")
+                try:
+                    #listings = self.event_loop.run_until_complete(self.database.get_listings(sku["name"]))
+                    if sku["sku"] == "5021;6":     
+                        remaining -= 1
+                        pricestf += 1
+                        continue # We don't price the key
+                    raise Exception("Cannot price yet.")
+                    custom += 1
+                    self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
+                except Exception as e:
+                    self.logger.error(f"Failed to price item {sku["name"]}/{sku["sku"]} using pricer.")
+                    self.logger.error(e)
+                    try:
+                        price = self.get_external_price(sku["sku"])
+                        self.update_pricelist(price)
+                        remaining -= 1
+                        pricestf += 1
+                        self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using fallback.")
+                    except Exception as e:
+                        self.logger.error(f"Failed to price {sku["name"]}/{sku["sku"]} using fallback.")
+                        self.logger.error(e)
+                        print("!! THIS IS VERY BAD CHECK CODE !!")
+                        failed += 1
+                        remaining -= 1
+                self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
             self.write_pricelist()
             prices = self.pricelist["items"]
             total = len(prices)
@@ -111,6 +142,8 @@ class Pricer:
                 remaining = remaining + 1
                 self.logger.info(f"({remaining} out of {total}) Emitted price for {price["name"]}/{price["sku"]}")
                 sleep(0.3)
+            self.logger.info(f"\nDONE\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
+            self.logger.info(f"Sleeping for {self.pricing_interval} seconds (If this is the interval loop).")
         except Exception as e:
             self.logger.error(e)
 
@@ -185,6 +218,7 @@ class Pricer:
                 self.logger.debug("Creating items...")
                 self.storage_engine.write_file("item_list.json", "{\"items\":[]}")
                 items = self.storage_engine.read_file("item_list.json")
+            self.logger.info("Read items.")
             self.items = loads(items)
         except Exception as e:
             self.logger.error("Failed reading items.")

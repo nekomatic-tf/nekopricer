@@ -17,7 +17,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ],
     format="%(asctime)s [%(levelname)s][%(name)s]: %(message)s",
-    level=logging.DEBUG
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 logger.debug("Logger started.")
@@ -45,7 +45,12 @@ pricer = Pricer(
     storage_engine=engine,
     schema_server_url=ptf_config["schemaServer"],
     socket_io=socket_io,
-    pricing_interval=interval_config["price"]
+    pricing_interval=interval_config["price"],
+    max_percentage_differences=config["maxPercentageDifferences"],
+    excluded_steam_ids=config["excludedSteamIDs"],
+    trusted_steam_ids=config["trustedSteamIDs"],
+    excluded_listing_descriptions=config["excludedListingDescriptions"],
+    blocked_attributes=config["blockedAttributes"]
 )
 backpacktf = BackpackTF(
     mongo_uri=mongo_config["uri"],
@@ -58,7 +63,7 @@ backpacktf = BackpackTF(
 
 logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
-#websocket_thread.start()
+websocket_thread.start()
 
 # Routes
 @app.get("/items")
