@@ -1,20 +1,18 @@
-# Pricer Service
+# Pricer pricelist helper
 
 import logging
 from src.database import ListingDBManager
 from src.storage import MinIOEngine
-from asyncio import run, get_event_loop, new_event_loop
-from httpx import AsyncClient
-from threading import Thread
+from asyncio import new_event_loop
+import requests
+from src.helpers import set_interval, compare_prices
 from tf2_utils import PricesTF
-from time import sleep, time
-from src.server import socket_io
+from time import time
 from minio import S3Error
 from json import loads, dumps
-import requests
-from src.pricelist import Pricelist
+from flask_socketio import SocketIO
 
-class Pricer():
+class Pricer:
     logger = logging.getLogger(__name__)
     def __init__(
             self,
@@ -22,111 +20,82 @@ class Pricer():
             database_name: str,
             collection_name: str,
             storage_engine: MinIOEngine,
-            items: dict,
-            schema_server_url: str
+            schema_server_url: str,
+            socket_io: SocketIO
     ):
-        self.storage_engine = storage_engine
-        self.items = items
-        self.schema_server_url = schema_server_url
-        self.http_client = AsyncClient()
         self.database = ListingDBManager(mongo_uri, database_name, collection_name)
-        self.prices_tf = PricesTF()
+        self.event_loop = new_event_loop()
+        self.storage_engine = storage_engine
+        self.schema_server_url = schema_server_url
+        self.socket_io = socket_io
+        # Get the pricelist and item list
         self.pricelist_array = dict()
         self.key_price = dict()
-        self.event_loop = new_event_loop()
-        self.pricelist = Pricelist(mongo_uri, database_name, collection_name, storage_engine, schema_server_url)
-        return
-    
-    def start(self):
-        self._refresh_key_price() # Refresh before doing literally anything
-        key_thread = Thread(target=self.refresh_key_price)
-        key_thread.start()
-        self.price_items()
-        return
-    
-    def refresh_key_price(self):
-        self._refresh_key_price()
-        sleep(300) # 5 minutes of eepy
-    
-    def _refresh_key_price(self):
-        try:
-            pricelist_array = self.get_pricelist_array()
-            if not type(pricelist_array) == list:
-                raise Exception("Failed to get external pricelist array.")
-            self.pricelist_array = pricelist_array
-            key_price = self.get_external_price("5021;6")
-            if not type(key_price) == dict:
-                raise Exception("Failed to get key price.")
-            self.key_price = key_price
-            socket_io.emit("price", key_price)
-            self.update_pricelist_file(self.key_price)
-            self.logger.info("Emitted new key price.")
-        except Exception as e:
-            self.logger.error(str(e))
+        self.items = dict()
+        self.pricelist = dict()
+        self.pricestf = PricesTF()
+        # Get our data before full initialization
+        self.read_items()
+        self.write_items() # For good measure
+        self.read_pricelist()
+        self.write_pricelist() # For good measure
+        self.update_pricelist_array()
+        self.update_key_price()
 
-    def price_items(self):
-        # Get all the SKUs
-        total = 0
-        remaining = 0
+        set_interval(self.update_pricelist_array, 300) # 5 Minutes
+        set_interval(self.update_key_price, 5) # 5 Minutes
+        return
+    
+    # Tasks
+    def update_key_price(self):
         try:
-            skus = requests.post(f"{self.schema_server_url}/getSku/fromNameBulk", json=self.items)
-            if not skus.status_code == 200:
-                raise Exception("Issue converting names to SKUs.")
-            if not type(skus.json()) == dict:
-                raise Exception("Issue converting names to SKUs.")
-            skus = skus.json()["skus"]
-            total = len(skus)
-            remaining = total
-            skus = [{"sku": sku, "name": name} for sku, name in zip(skus, self.items)] # Produce a reasonable format iterate
-            for sku in skus:
-                if sku["sku"] == "5021;6":
-                    remaining = remaining - 1
-                    continue # Skip the key
-                listings = self.event_loop.run_until_complete(self.database.get_listings(sku["name"]))
-                print(listings)
-                price = self.get_external_price(sku["sku"])
-                self.update_pricelist_file(price)
-                remaining = remaining - 1
-                self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}")
-            # Instead of getting more stupid code, better to just re read the pricelist.json and then emit all the prices in it.
-            pricelist = self.storage_engine.read_file("pricelist.json")
-            if (type(pricelist) == S3Error):
-                raise Exception("Failed to read pricelist.json!")
-            prices = loads(pricelist)["items"]
-            total = len(prices)
-            remaining = 0
-            for price in prices:
-                socket_io.emit("price", price)
-                remaining = remaining + 1
-                self.logger.info(f"({remaining} out of {total}) Emitted price for {price["name"]}/{price["sku"]}")
-                sleep(0.3)
-            sleep(5) # Every 5 minutes, just temporary
-            self.price_items()
-            return
+            self.logger.debug("Refreshing key price...")
+            price = self.get_external_price("5021;6")
+            if price == None:
+                raise Exception("Failed to get the key price.")
+            self.key_price = price
+            self.update_pricelist(price)
+            self.socket_io.emit("price", price)
+            self.logger.info("Refreshed key price.")
         except Exception as e:
             self.logger.error(e)
     
-
-    
-    def get_external_price(self, sku: str) -> dict: # Properly formats a prices.tf price.
+    def update_pricelist_array(self):
         try:
+            self.logger.debug("Refreshing external pricelist...")
+            response = requests.get("https://autobot.tf/json/pricelist-array")
+            if not response.status_code == 200:
+                raise Exception("Failed to fetch external pricelist.")
+            if not len(response.json()["items"]) > 0:
+                raise Exception("No items were found in the external pricelist.")
+            self.pricelist_array = response.json()["items"]
+            self.logger.info("Refreshed pricelist array.")
+        except Exception as e:
+            self.logger.error("Failed to update the pricelist array.")
+            self.logger.error(e)
+    
+    # Functions
+    def get_external_price(self, sku: str) -> dict:
+        try:
+            self.logger.debug(f"Getting external price for {sku}")
             for item in self.pricelist_array:
                 if sku == "5021;6": # Nope, get fallback'd
-                    self.logger.warn("Ignore below error, item is SKU 5021;6!")
+                    self.logger.debug("Forcing Mann Co. Supply Crate Key (5021;6) to use prices.tf API.")
                     break
                 if sku == item["sku"]:
                     return item
-            # Occurs if the item price isn't found in the external array or the SKU is a that of a key
-            self.logger.warn("Failed to find item in pricelist array, calling prices.tf")
-            self.prices_tf.request_access_token()
-            item = self.prices_tf.get_price(sku)
-            item_name = requests.get(f"{self.schema_server_url}/getName/fromSku/{sku}")
-            if not item_name.status_code == 200:
-                raise Exception(f"Failed to fetch get name for {sku}")
-            item_name = item_name.json()["name"]
-            price = self.prices_tf.format_price(item)
+            # Occurs if the item price isn't found in the external array
+            if not sku == "5021;6": # It is not an error if its a key
+                self.logger.warn(f"Failed to find price for {sku}, using prices.tf.")
+            self.pricestf.request_access_token()
+            item = self.pricestf.get_price(sku)
+            name = requests.get(f"{self.schema_server_url}/getName/fromSku/{sku}")
+            if not name.status_code == 200:
+                raise Exception(f"Failed to get name for {sku}")
+            name = name.json()["name"]
+            price = self.pricestf.format_price(item)
             return {
-                "name": item_name,
+                "name": name,
                 "sku": sku,
                 "source": "bptf",
                 "time": int(time()),
@@ -134,56 +103,86 @@ class Pricer():
                 "sell": price["sell"]
             }
         except Exception as e:
-            return e
+            self.logger.error(f"Failed getting external price for {sku}")
+            self.logger.error(e)
     
-    def get_pricelist_array(self):
+    # Helper methods
+    def update_pricelist(self, item: dict):
         try:
-            response = requests.get("https://autobot.tf/json/pricelist-array")
-            if not response.status_code == 200:
-                raise Exception("Failed to fetch external pricelist.")
-            if not len(response.json()["items"]) > 0:
-                raise Exception("No items were found in the external pricelist.")
-            return response.json()["items"]
-        except Exception as e:
-            return e
-    
-    def update_pricelist_file(self, item: dict): # Updates the custom pricelist (Kinda important for the API to work)
-        try:
-            pricelist = self.storage_engine.read_file("pricelist.json")
-            if (type(pricelist) == S3Error):
-                self.logger.debug("Creating pricelist.json")
-                self.storage_engine.write_file("pricelist.json", "{\"items\": []}")
-                pricelist = self.storage_engine.read_file("pricelist.json")
-            pricelist = loads(pricelist)
-            items = pricelist["items"]
-            if not type(items) == list:
-                items = []
+            items = self.pricelist["items"] # Low level coding activities
+            # Unused code, if the array is blank something went seriously fucking wrong anyways
+            '''if not type(items) == list:
+                items = []'''
             existing_index = next((index for index, pricelist_item in enumerate(items) if pricelist_item['sku'] == item['sku']), -1)
-
             if not existing_index == -1:
                 pl_item = items[existing_index]
                 if item["buy"] and item["sell"] and pl_item["buy"] and pl_item["sell"]:
                     if compare_prices(pl_item["buy"], item["buy"]) and compare_prices(pl_item["sell"], item["sell"]):
+                        self.logger.debug(f"Skipping price update for {item["name"]}/{item["sku"]} (Price hasn't changed).")
                         # Prices are the same, no need to update
                         return
                     else:
                         # Prices are different, update.
                         items[existing_index] = item
+                        self.logger.debug(f"Updated price for {item["name"]}/{item["sku"]}")
                 elif item["buy"] and item["sell"] and (not pl_item["buy"] or not pl_item["sell"]):
                     # We have a buy and sell price, but the pricelist item doesn't.
                     items[existing_index] = item
+                    self.logger.debug(f"Updated price for {item["name"]}/{item["sku"]}")
                 else:
                     # Data is missing, don't update.
+                    self.logger.debug(f"Skipping price update for {item["name"]}/{item["sku"]} (No data).")
                     return
             else:
                 # If the item doesn't exist, add it to the end of the array
                 items.append(item)
-                pricelist["items"] = items
-                self.storage_engine.write_file("pricelist.json", dumps(pricelist))
+                self.pricelist["items"] = items
+                self.write_pricelist()
         except Exception as e:
+            self.logger.error(f"Failed updating price for {item["name"]}/{item["sku"]}")
             self.logger.error(e)
-
     
-# Helpers
-def compare_prices(item_1, item_2):
-    return item_1["keys"] == item_2["keys"] and item_1["metal"] == item_2["metal"]
+    def read_items(self):
+        try:
+            self.logger.debug("Reading items...")
+            items = self.storage_engine.read_file("item_list.json")
+            if type(items) == S3Error:
+                self.logger.debug("Creating items...")
+                self.storage_engine.write_file("item_list.json", "{\"items\":[]}")
+                items = self.storage_engine.read_file("item_list.json")
+            self.items = loads(items)
+        except Exception as e:
+            self.logger.error("Failed reading items.")
+            self.logger.error(e)
+    
+    def write_items(self):
+        try:
+            self.logger.debug("Writing items...")
+            self.storage_engine.write_file("item_list.json", dumps(self.items))
+            self.logger.info("Wrote items.")
+        except Exception as e:
+            self.logger.error("Failed writing items.")
+            self.logger.error(e)
+    
+    def read_pricelist(self):
+        try:
+            self.logger.debug("Reading pricelist...")
+            pricelist = self.storage_engine.read_file("pricelist.json")
+            if type(pricelist) == S3Error:
+                self.logger.debug("Creating pricelist...")
+                self.storage_engine.write_file("pricelist.json", "{\"items\":[]}")
+                pricelist = self.storage_engine.read_file("pricelist.json")
+            self.pricelist = loads(pricelist)
+            self.logger.info("Read pricelist.")
+        except Exception as e:
+            self.logger.error("Failed reading pricelist.")
+            self.logger.error(e)
+    
+    def write_pricelist(self):
+        try:
+            self.logger.debug("Writing pricelist...")
+            self.storage_engine.write_file("pricelist.json", dumps(self.pricelist))
+            self.logger.info("Wrote pricelist.")
+        except Exception as e:
+            self.logger.error("Failed writing pricelist.")
+            self.logger.error(e)
