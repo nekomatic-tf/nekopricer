@@ -6,7 +6,7 @@ from src.storage import MinIOEngine
 from asyncio import run
 from httpx import AsyncClient
 from threading import Thread
-from src.tf2_utils.src.tf2_utils.prices_tf import PricesTF
+from tf2_utils import PricesTF
 from time import sleep
 from src.server import socket_io
 
