@@ -3,7 +3,7 @@
 import logging
 from src.database import ListingDBManager
 from src.storage import MinIOEngine
-from asyncio import run
+from asyncio import run, get_event_loop, new_event_loop
 from httpx import AsyncClient
 from threading import Thread
 from tf2_utils import PricesTF
@@ -32,6 +32,7 @@ class Pricer():
         self.prices_tf = PricesTF()
         self.pricelist_array = dict()
         self.key_price = dict()
+        self.event_loop = new_event_loop()
         return
     
     def start(self):
@@ -67,17 +68,19 @@ class Pricer():
         remaining = 0
         try:
             skus = requests.post(f"{self.schema_server_url}/getSku/fromNameBulk", json=self.items)
-            total = len(skus.json()["skus"])
-            remaining = total
             if not skus.status_code == 200:
                 raise Exception("Issue converting names to SKUs.")
             if not type(skus.json()) == dict:
                 raise Exception("Issue converting names to SKUs.")
-            for sku in skus.json()["skus"]:
-                if sku == "5021;6":
+            skus = skus.json()["skus"]
+            total = len(skus)
+            remaining = total
+            skus = [{"sku": sku, "name": name} for sku, name in zip(skus, self.items)] # Produce a reasonable format iterate
+            for sku in skus:
+                if sku["sku"] == "5021;6":
                     remaining = remaining - 1
                     continue # Skip the key
-                price = self.get_external_price(sku)
+                price = self.get_external_price(sku["sku"])
                 self.update_pricelist_file(price)
                 remaining = remaining - 1
                 self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}")
@@ -98,6 +101,7 @@ class Pricer():
             return
         except Exception as e:
             self.logger.error(e)
+    
 
     
     def get_external_price(self, sku: str) -> dict: # Properly formats a prices.tf price.
@@ -109,7 +113,7 @@ class Pricer():
                 if sku == item["sku"]:
                     return item
             # Occurs if the item price isn't found in the external array or the SKU is a that of a key
-            self.logger.debug("Failed to find item in pricelist array, calling prices.tf")
+            self.logger.warn("Failed to find item in pricelist array, calling prices.tf")
             self.prices_tf.request_access_token()
             item = self.prices_tf.get_price(sku)
             item_name = requests.get(f"{self.schema_server_url}/getName/fromSku/{sku}")
