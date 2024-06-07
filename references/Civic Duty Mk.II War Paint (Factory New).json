@@ -1,0 +1,450 @@
+{
+  "_id": "666399da3160e1bbae497134",
+  "name": "Civic Duty Mk.II War Paint (Factory New)",
+  "listings": [
+    {
+      "steamid": "76561199534874419",
+      "currencies": {
+        "metal": 7
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717800067,
+      "bumped_at": 1717800067,
+      "intent": "sell",
+      "user_agent": {
+        "lastPulse": 1717803385,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "id": 14558598292,
+        "original_id": 13740176911,
+        "defindex": 16144,
+        "level": 99,
+        "quality": 15,
+        "inventory": 2147483651,
+        "quantity": 1,
+        "origin": 8,
+        "attributes": [
+          {
+            "defindex": 725,
+            "value": 1045220557,
+            "float_value": 0.20000000298023224
+          },
+          {
+            "defindex": 866,
+            "value": 782493760,
+            "float_value": 7.453637707044436e-11
+          },
+          {
+            "defindex": 867,
+            "value": 3281401367,
+            "float_value": -300.4225769042969
+          },
+          {
+            "defindex": 719,
+            "value": "models/weapons/c_models/stattrack.mdl"
+          },
+          {
+            "defindex": 731,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 743,
+            "value": 1,
+            "float_value": 1.401298464324817e-45
+          },
+          {
+            "defindex": 2028,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 749,
+            "value": 0,
+            "float_value": 0
+          },
+          {
+            "defindex": 724,
+            "value": 1073741824,
+            "float_value": 2
+          },
+          {
+            "defindex": 834,
+            "value": 144,
+            "float_value": 2.0178697886277366e-43
+          }
+        ]
+      },
+      "details": "⚡ Selling for 𝟕 𝐫𝐞𝐟. Stock: 𝟏 / 𝟒𝟎 Add me and type 💬 !buy 1 Civic Duty Mk.II War Paint (Factory New) 💬",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561198862759538",
+      "currencies": {
+        "metal": 8
+      },
+      "trade_offers_preferred": 0,
+      "buy_out_only": null,
+      "listed_at": 1717335063,
+      "bumped_at": 1717794889,
+      "intent": "sell",
+      "user_agent": null,
+      "item": {
+        "id": 14497269124,
+        "original_id": 14497269124,
+        "defindex": 16144,
+        "level": 99,
+        "quality": 15,
+        "inventory": 2147483800,
+        "quantity": 1,
+        "origin": 27,
+        "attributes": [
+          {
+            "defindex": 211,
+            "value": 1716879600,
+            "float_value": 2.520606344788096e+23
+          },
+          {
+            "defindex": 725,
+            "value": 1045220557,
+            "float_value": 0.20000000298023224
+          },
+          {
+            "defindex": 866,
+            "value": 4216717212,
+            "float_value": -1.1111436049102017e+36
+          },
+          {
+            "defindex": 867,
+            "value": 1368274427,
+            "float_value": 76348874752
+          },
+          {
+            "defindex": 719,
+            "value": "models/weapons/c_models/stattrack.mdl"
+          },
+          {
+            "defindex": 731,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 743,
+            "value": 1,
+            "float_value": 1.401298464324817e-45
+          },
+          {
+            "defindex": 2028,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 749,
+            "value": 0,
+            "float_value": 0
+          },
+          {
+            "defindex": 724,
+            "value": 1073741824,
+            "float_value": 2
+          },
+          {
+            "defindex": 834,
+            "value": 144,
+            "float_value": 2.0178697886277366e-43
+          }
+        ]
+      },
+      "details": "Only metal pls!",
+      "only_buyout": 0
+    },
+    {
+      "steamid": "76561198368185026",
+      "currencies": {
+        "metal": 8
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717133708,
+      "bumped_at": 1717693463,
+      "intent": "sell",
+      "user_agent": null,
+      "item": {
+        "id": 14530891650,
+        "original_id": 14530891650,
+        "defindex": 16144,
+        "level": 99,
+        "quality": 15,
+        "inventory": 2147483657,
+        "quantity": 1,
+        "origin": 8,
+        "attributes": [
+          {
+            "defindex": 866,
+            "value": 1585180420,
+            "float_value": 4538433255250067500
+          },
+          {
+            "defindex": 867,
+            "value": 2714542446,
+            "float_value": -1.386630778168314e-18
+          },
+          {
+            "defindex": 725,
+            "value": 1045220557,
+            "float_value": 0.20000000298023224
+          },
+          {
+            "defindex": 719,
+            "value": "models/weapons/c_models/stattrack.mdl"
+          },
+          {
+            "defindex": 731,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 743,
+            "value": 1,
+            "float_value": 1.401298464324817e-45
+          },
+          {
+            "defindex": 2028,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 749,
+            "value": 0,
+            "float_value": 0
+          },
+          {
+            "defindex": 724,
+            "value": 1073741824,
+            "float_value": 2
+          },
+          {
+            "defindex": 834,
+            "value": 144,
+            "float_value": 2.0178697886277366e-43
+          }
+        ]
+      },
+      "details": "",
+      "only_buyout": 0
+    },
+    {
+      "steamid": "76561199534874419",
+      "currencies": {
+        "metal": 4.44
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717798000,
+      "bumped_at": 1717798000,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717803385,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 15,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "⚡ Buying for 𝟒.𝟒𝟒 𝐫𝐞𝐟. Stock: 𝟎 / 𝟒𝟎 Add me and type 💬 !sell 1 Civic Duty Mk.II War Paint (Factory New) 💬",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561199433555906",
+      "currencies": {
+        "metal": 4.33
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717707759,
+      "bumped_at": 1717803212,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717803151,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 15,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "💖🐱I am buying your Civic Duty Mk.II War Paint (Factory New) for 4.33 ref, I have 0 / 2. !sell Civic Duty Mk.II War Paint (Factory New)🐱💖",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561199001097833",
+      "currencies": {
+        "metal": 4.33
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717798007,
+      "bumped_at": 1717798007,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717803381,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 15,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "⚡ Buying for 𝟒.𝟑𝟑 𝐫𝐞𝐟. Stock: 𝟎 / 𝟒𝟎 Add me and type 💬 !sell 1 Civic Duty Mk.II War Paint (Factory New) 💬",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561199401140095",
+      "currencies": {
+        "metal": 4.33
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717616656,
+      "bumped_at": 1717789503,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717803482,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 15,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "I am buying your Civic Duty Mk.II War Paint (Factory New) for 4.33 ref, I have 0 / 2.",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561199209409796",
+      "currencies": {
+        "metal": 4.33
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717604389,
+      "bumped_at": 1717777243,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717803462,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 15,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "I am buying your Civic Duty Mk.II War Paint (Factory New) for 4.33 ref, I have 0 / 2.",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561199517144807",
+      "currencies": {
+        "metal": 4.22
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1714845917,
+      "bumped_at": 1717802839,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717803371,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 15,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "I am buying for 4.22 ref, I have 0 / 𝟏.",
+      "only_buyout": 1
+    }
+  ],
+  "snapshot_time": 1717803482
+}
