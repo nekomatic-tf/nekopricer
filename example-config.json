@@ -1,12 +1,13 @@
 {
-    "backpacktf": {
+    "backpackTf": {
         "apiKey": "",
         "accessToken": "",
         "websocket": "wss://ws.backpack.tf/events"
     },
     "pricesTf": {
         "api": "https://api2.prices.tf",
-        "websocket": "wss://ws.prices.tf"
+        "websocket": "wss://ws.prices.tf",
+        "schemaServer": "https://schema.autobot.tf"
     },
     "steamAPIKey": "",
     "mongo": {

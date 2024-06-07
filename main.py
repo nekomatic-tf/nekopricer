@@ -10,7 +10,7 @@ from src.storage import MinIOEngine
 from minio import S3Error
 from src.backpacktf import BackpackTF
 from src.pricer import Pricer
-from threading import Thread
+from threading import Thread, excepthook
 from os import kill, getpid
 from signal import SIGABRT
 
@@ -40,7 +40,7 @@ async def main():
     item_list = loads(item_list)
     logger.info("Updated allowed items!")
     
-    bptf_config = config["backpacktf"]
+    bptf_config = config["backpackTf"]
     mongo_config = config["mongo"]
 
     websocket = BackpackTF(
@@ -55,19 +55,23 @@ async def main():
     backpacktf_thread = Thread(target=websocket.start_websocket)
     #backpacktf_thread.start()
 
+    prices_tf_config = config["pricesTf"]
+
     pricer = Pricer(
         mongo_uri=mongo_config["uri"],
         database_name=mongo_config["db"],
         collection_name=mongo_config["collection"],
         storage_engine=engine,
-        items=item_list["items"]
+        items=item_list["items"],
+        schema_server_url=prices_tf_config["schemaServer"]
     )
     pricer_thread = Thread(target=pricer.start)
     pricer_thread.start()
-    start(config)
+
+    start(config) # Start the server
 
     logger.debug("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
     kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.
-
+    
 if __name__ == "__main__":
     run(main())
