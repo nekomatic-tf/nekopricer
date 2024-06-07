@@ -9,8 +9,8 @@ from src.server import start
 from src.storage import MinIOEngine
 from minio import S3Error
 from src.backpacktf import BackpackTF
-from src.pricer import Pricer
-from threading import Thread, excepthook
+from src.pricer.pricer import Pricer
+from threading import Thread
 from os import kill, getpid
 from signal import SIGABRT
 
@@ -52,9 +52,6 @@ async def main():
         prioritized_items=item_list["items"]
     )
 
-    backpacktf_thread = Thread(target=websocket.start_websocket)
-    #backpacktf_thread.start()
-
     prices_tf_config = config["pricesTf"]
 
     pricer = Pricer(
@@ -65,13 +62,23 @@ async def main():
         items=item_list["items"],
         schema_server_url=prices_tf_config["schemaServer"]
     )
+    
+    backpacktf_thread = Thread(target=websocket.start_websocket)
     pricer_thread = Thread(target=pricer.start)
+    server_thread = Thread(target=start, args=[config])
+
+    #backpacktf_thread.start()
     pricer_thread.start()
+    server_thread.start()
 
-    start(config) # Start the server
+    #backpacktf_thread.join()
+    pricer_thread.join()
+    server_thread.join()
 
-    logger.debug("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
-    kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.
+    #start(config) # Start the server
+
+    #logger.debug("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
+    #kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.
     
 if __name__ == "__main__":
     run(main())

@@ -80,6 +80,8 @@ class Pricer():
                 if sku["sku"] == "5021;6":
                     remaining = remaining - 1
                     continue # Skip the key
+                listings = self.event_loop.run_until_complete(self.database.get_listings(sku["name"]))
+                print(listings)
                 price = self.get_external_price(sku["sku"])
                 self.update_pricelist_file(price)
                 remaining = remaining - 1
