@@ -5,7 +5,7 @@ import logging
 import sys
 from asyncio import run
 from json import load, loads
-import src.server as server
+from src.server import start
 from src.storage import MinIOEngine
 from minio import S3Error
 from src.backpacktf import BackpackTF
@@ -21,7 +21,7 @@ async def main():
             logging.StreamHandler(sys.stdout)
         ],
         format="%(asctime)s [%(levelname)s][%(name)s]: %(message)s",
-        level=logging.DEBUG
+        level=logging.INFO
     )
     logger = logging.getLogger(__name__)
     logger.debug("Logger started.")
@@ -42,7 +42,7 @@ async def main():
     
     bptf_config = config["backpacktf"]
     mongo_config = config["mongo"]
-    
+
     websocket = BackpackTF(
         mongo_uri=mongo_config["uri"],
         database_name=mongo_config["db"],
@@ -53,19 +53,18 @@ async def main():
     )
 
     backpacktf_thread = Thread(target=websocket.start_websocket)
-    backpacktf_thread.start()
+    #backpacktf_thread.start()
 
     pricer = Pricer(
         mongo_uri=mongo_config["uri"],
         database_name=mongo_config["db"],
         collection_name=mongo_config["collection"],
         storage_engine=engine,
-        items=item_list["items"],
-        socket_io=server.socket_io
+        items=item_list["items"]
     )
     pricer_thread = Thread(target=pricer.start)
     pricer_thread.start()
-    server.start(config)
+    start(config)
 
     logger.debug("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
     kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.

@@ -7,3 +7,4 @@ tf2-utils
 flask
 pathlib
 minio
+flask-socketio
