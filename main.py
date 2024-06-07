@@ -9,9 +9,8 @@ from src.server import start
 from src.storage import MinIOEngine
 from minio import S3Error
 from src.backpacktf import BackpackTF
-from src.pricer.pricer import Pricer
+from src.pricer import Pricer
 from threading import Thread
-from os import kill, getpid
 from signal import SIGABRT
 
 async def main():
@@ -21,7 +20,7 @@ async def main():
             logging.StreamHandler(sys.stdout)
         ],
         format="%(asctime)s [%(levelname)s][%(name)s]: %(message)s",
-        level=logging.INFO
+        level=logging.DEBUG
     )
     logger = logging.getLogger(__name__)
     logger.debug("Logger started.")
@@ -64,15 +63,12 @@ async def main():
     )
     
     backpacktf_thread = Thread(target=websocket.start_websocket)
-    pricer_thread = Thread(target=pricer.start)
     server_thread = Thread(target=start, args=[config])
 
     #backpacktf_thread.start()
-    pricer_thread.start()
     server_thread.start()
 
     #backpacktf_thread.join()
-    pricer_thread.join()
     server_thread.join()
 
     #start(config) # Start the server

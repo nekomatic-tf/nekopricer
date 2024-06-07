@@ -12,6 +12,7 @@ from src.server import socket_io
 from minio import S3Error
 from json import loads, dumps
 import requests
+from src.pricelist import Pricelist
 
 class Pricer():
     logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ class Pricer():
         self.pricelist_array = dict()
         self.key_price = dict()
         self.event_loop = new_event_loop()
+        self.pricelist = Pricelist(mongo_uri, database_name, collection_name, storage_engine, schema_server_url)
         return
     
     def start(self):
