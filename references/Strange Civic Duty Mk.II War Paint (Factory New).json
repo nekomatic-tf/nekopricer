@@ -1,0 +1,295 @@
+{
+  "_id": "6663a0b13160e1bbae4971d5",
+  "name": "Strange Civic Duty Mk.II War Paint (Factory New)",
+  "listings": [
+    {
+      "steamid": "76561198176218038",
+      "currencies": {
+        "metal": 45
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717717420,
+      "bumped_at": 1717791146,
+      "intent": "sell",
+      "user_agent": null,
+      "item": {
+        "id": 14371100309,
+        "original_id": 13347871833,
+        "defindex": 16144,
+        "level": 99,
+        "quality": 15,
+        "inventory": 2147483806,
+        "quantity": 1,
+        "origin": 27,
+        "attributes": [
+          {
+            "defindex": 214,
+            "value": 0,
+            "float_value": 0
+          },
+          {
+            "defindex": 725,
+            "value": 1045220557,
+            "float_value": 0.20000000298023224
+          },
+          {
+            "defindex": 866,
+            "value": 340197291,
+            "float_value": 1.0046867007276697e-26
+          },
+          {
+            "defindex": 867,
+            "value": 758723977,
+            "float_value": 1.0527919681868614e-11
+          },
+          {
+            "defindex": 719,
+            "value": "models/weapons/c_models/stattrack.mdl"
+          },
+          {
+            "defindex": 731,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 743,
+            "value": 1,
+            "float_value": 1.401298464324817e-45
+          },
+          {
+            "defindex": 2028,
+            "value": 1065353216,
+            "float_value": 1
+          },
+          {
+            "defindex": 749,
+            "value": 0,
+            "float_value": 0
+          },
+          {
+            "defindex": 724,
+            "value": 1073741824,
+            "float_value": 2
+          },
+          {
+            "defindex": 834,
+            "value": 144,
+            "float_value": 2.0178697886277366e-43
+          }
+        ]
+      },
+      "details": "Send me a trade Offer!",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561198027435742",
+      "currencies": {
+        "metal": 32
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717278789,
+      "bumped_at": 1717625721,
+      "intent": "buy",
+      "user_agent": null,
+      "item": {
+        "defindex": 9536,
+        "quality": 15,
+        "attributes": [
+          {
+            "float_value": "0",
+            "defindex": "214"
+          },
+          {
+            "value": "144",
+            "defindex": "834"
+          },
+          {
+            "float_value": "0.2",
+            "defindex": "725"
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ],
+        "quantity": "1"
+      },
+      "details": "looking for FN, MW or FT Strange Civic Duty Mk.II! Price is estimated for FN, please feel free to negotiate for the lesser tiers :)",
+      "only_buyout": 0
+    },
+    {
+      "steamid": "76561198115883028",
+      "currencies": {
+        "metal": 23
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1716983198,
+      "bumped_at": 1717779955,
+      "intent": "buy",
+      "user_agent": null,
+      "item": {
+        "defindex": 9536,
+        "quality": 11,
+        "attributes": [
+          {
+            "value": "144",
+            "defindex": "834"
+          },
+          {
+            "float_value": "0.2",
+            "defindex": "725"
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ],
+        "quantity": "1"
+      },
+      "details": "buying any applied / non applied",
+      "only_buyout": 0
+    },
+    {
+      "steamid": "76561199152643337",
+      "currencies": {
+        "metal": 19.11
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1717556815,
+      "bumped_at": 1717801744,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717805162,
+        "client": "TF2Autobot - Run your own bot for free"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 11,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "🟢Buying for 💲𝟭𝟵.𝟭𝟭 𝗿𝗲𝗳 each. I have 📦𝟬 / 𝟭𝟬📦. Offer⚡ or chat me 💬 !sell 1 Strange Civic Duty Mk.II War Paint (Factory New) ",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561199102293482",
+      "currencies": {
+        "metal": 18
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1713792744,
+      "bumped_at": 1717804006,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717805206,
+        "client": "Gladiator.tf - Rent your own bot from 6 keys per month"
+      },
+      "item": {
+        "defindex": 9536,
+        "quality": 11,
+        "attributes": [
+          {
+            "value": 144,
+            "defindex": 834
+          },
+          {
+            "float_value": 0.2,
+            "defindex": 725
+          }
+        ]
+      },
+      "details": "⚡ [THIS BOT IS BUYING ALL THE WAR PAINTS!] - Buying for 18 ref. Send me a trade offer or add me and type - !sell Strange Civic Duty Mk.II War Paint (Factory New) ",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561198946343725",
+      "currencies": {
+        "metal": 17
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1706128407,
+      "bumped_at": 1717799716,
+      "intent": "buy",
+      "user_agent": null,
+      "item": {
+        "defindex": 9536,
+        "quality": 15,
+        "attributes": [
+          {
+            "float_value": "0",
+            "defindex": "214"
+          },
+          {
+            "value": "144",
+            "defindex": "834"
+          },
+          {
+            "float_value": "0.2",
+            "defindex": "725"
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ],
+        "quantity": "1"
+      },
+      "details": "s  t r a n g e ",
+      "only_buyout": 1
+    },
+    {
+      "steamid": "76561198963954159",
+      "currencies": {
+        "metal": 0.16
+      },
+      "trade_offers_preferred": 1,
+      "buy_out_only": null,
+      "listed_at": 1716693926,
+      "bumped_at": 1717803564,
+      "intent": "buy",
+      "user_agent": {
+        "lastPulse": 1717804962,
+        "client": "TF2Autobot - This is the way"
+      },
+      "item": {
+        "defindex": 16144,
+        "quality": 11,
+        "attributes": [
+          {
+            "defindex": 834,
+            "value": 144
+          },
+          {
+            "defindex": 725,
+            "float_value": 0.2
+          },
+          {
+            "value": null,
+            "defindex": 229
+          }
+        ]
+      },
+      "details": "I will pay 𝟬.𝟭𝟲 𝗿𝗲𝗳 ▪ 0 / 1.  🗨 !sell Strange Civic Duty Mk.II War Paint (Factory New)",
+      "only_buyout": 1
+    }
+  ],
+  "snapshot_time": 1717805209
+}
