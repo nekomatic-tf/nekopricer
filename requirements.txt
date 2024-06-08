@@ -1,7 +1,6 @@
 logging
 pymongo
 motor
-httpx
 asyncio
 tf2-utils
 flask

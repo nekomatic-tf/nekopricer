@@ -12,6 +12,7 @@ from src.pricer import Pricer
 from src.pricelist import Pricelist
 from os import kill, getpid
 from signal import SIGABRT
+from asyncio import run
 
 logging.basicConfig(
     handlers=[
@@ -56,7 +57,7 @@ backpacktf = BackpackTF(
 
 logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
-#websocket_thread.start()
+websocket_thread.start()
 
 first_connect = True
 # Socket notifications
@@ -92,5 +93,7 @@ app.run(
 logger.warning("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
 logger.info("Saving pricelist...")
 pricelist.write_pricelist()
+logger.info("Shutting backpacktf database down...")
+run(backpacktf.close_connection())
 print("Goodbye.")
 kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.

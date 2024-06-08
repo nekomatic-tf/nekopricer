@@ -2,7 +2,7 @@ import websockets
 from json import loads
 from asyncio import Future, create_task, sleep, run
 from src.database import ListingDBManager
-from httpx import AsyncClient
+from requests import get
 from time import time
 import logging
 
@@ -27,7 +27,6 @@ class BackpackTF:
         self.prioritized_items = []
         for item in prioritized_items["items"]:
             self.prioritized_items.append(item["name"])
-        self.http_client = AsyncClient()
 
     @staticmethod
     async def reformat_event(payload: dict) -> dict:
@@ -68,7 +67,7 @@ class BackpackTF:
         }
 
     async def update_snapshot(self, item_name: str) -> None:
-        snap_request = await self.http_client.get(
+        snap_request = get(
             "https://backpack.tf/api/classifieds/listings/snapshot",
             params={
                 "token": self.bptf_token,
