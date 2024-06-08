@@ -4,7 +4,7 @@ import logging
 import io
 from minio import Minio
 
-class MinIOEngine:
+class S3Engine:
     logger = logging.getLogger(__name__)
 
     def __init__(self, config: dict):

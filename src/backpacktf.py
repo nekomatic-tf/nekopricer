@@ -24,7 +24,9 @@ class BackpackTF:
         self.do_we_delete_old_listings = True
         self.snapshot_times = dict()
         self.bptf_token = bptf_token
-        self.prioritized_items = set(prioritized_items) if prioritized_items else set()
+        self.prioritized_items = []
+        for item in prioritized_items["items"]:
+            self.prioritized_items.append(item["name"])
         self.http_client = AsyncClient()
 
     @staticmethod
