@@ -43,8 +43,7 @@ pricelist = Pricelist(
 )
 pricer = Pricer(
     config,
-    pricelist,
-    socket_io
+    pricelist
 )
 backpacktf = BackpackTF(
     mongo_uri=mongo_config["uri"],

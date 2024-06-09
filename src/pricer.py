@@ -5,7 +5,6 @@ from src.database import ListingDBManager
 from asyncio import new_event_loop
 from requests import post
 from src.helpers import set_interval_and_wait
-from flask_socketio import SocketIO
 from src.pricelist import Pricelist
 
 class Pricer:
@@ -13,8 +12,7 @@ class Pricer:
     def __init__(
             self,
             config: dict,
-            pricelist: Pricelist,
-            socket_io: SocketIO
+            pricelist: Pricelist
     ):
         self.database = ListingDBManager(
             mongo_uri=config["mongo"]["uri"],
@@ -29,7 +27,6 @@ class Pricer:
         self.blocked_attributes = config["blockedAttributes"]
         self.schema_server_url = config["pricesTf"]["schemaServer"]
         self.pricelist = pricelist
-        self.socket_io = socket_io
         self.event_loop = new_event_loop()
         # Get the pricelist and item list
         self.pricelist_array = dict()
