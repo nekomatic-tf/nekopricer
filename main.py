@@ -56,7 +56,7 @@ backpacktf = BackpackTF(
 
 logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
-websocket_thread.start()
+#websocket_thread.start()
 
 # Socket notifications
 @socket_io.on("connect")

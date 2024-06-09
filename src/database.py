@@ -110,7 +110,7 @@ class ListingDBManager:
         await self.collection.delete_one({"name": name})
     
     # Does this trash even work?
-    async def get_listings_by_intent(self, name: str, intent: str) -> None:
+    async def get_listings_by_intent(self, name: str, intent: str) -> list:
         result = await self.collection.find_one({"name": name})
         if result:
             filtered_listings = [listing for listing in result['listings'] if listing['intent'] == intent]
@@ -118,7 +118,7 @@ class ListingDBManager:
         else:
             return []
     
-    async def get_listings(self, name: str) -> None:
+    async def get_listings(self, name: str) -> list:
         result = await self.collection.find_one({"name": name})
         if result:
             return result["listings"]
