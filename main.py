@@ -59,16 +59,11 @@ logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
 websocket_thread.start()
 
-first_connect = True
 # Socket notifications
 @socket_io.on("connect")
 def on_connect(socket):
-    global first_connect
     logger.info(f"A new client connected to the socket: {socket}. (Should they be authenticated?)")
-    if (first_connect == True):
-        first_connect = False
-        logger.info("This is the first connection, calling pricer.price_items()")
-        Thread(target=pricer.price_items).start()
+    pricelist.get_key_price() # Should we also emit all prices?
 @socket_io.on("disconnect")
 def on_disconnect():
     logger.info(f"A client disconnected, we didn't even get to say goodbye :(")

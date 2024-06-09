@@ -6,7 +6,6 @@ from asyncio import new_event_loop
 from requests import post
 from src.helpers import set_interval_and_wait
 from flask_socketio import SocketIO
-from time import sleep
 from src.pricelist import Pricelist
 
 class Pricer:
@@ -86,13 +85,7 @@ class Pricer:
                         remaining -= 1
                 self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
             self.pricelist.write_pricelist()
-            total = len(self.pricelist.pricelist["items"])
-            remaining = 0
-            for price in self.pricelist.pricelist["items"]:
-                self.socket_io.emit("price", price)
-                remaining = remaining + 1
-                self.logger.info(f"({remaining} out of {total}) Emitted price for {price["name"]}/{price["sku"]}")
-                sleep(0.3)
+            self.pricelist.emit_prices()
             self.logger.info(f"\nDONE\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
             self.logger.info(f"Sleeping for {self.price_interval} seconds (If this is the interval loop).")
         except Exception as e:
