@@ -118,6 +118,7 @@ class Pricer:
         buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
         sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
         # Sort via priority steamids (too lazy, later)
+        # Also filter outliers
         buy_price = dict()
         sell_price = dict()
         external_price = self.pricelist.get_external_price(sku)
