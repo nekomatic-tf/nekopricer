@@ -8,6 +8,7 @@ from src.helpers import set_interval_and_wait
 from src.pricelist import Pricelist
 from threading import Thread
 from math import floor
+from re import match
 
 class Pricer:
     logger = logging.getLogger(__name__)
@@ -117,15 +118,27 @@ class Pricer:
         buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
         sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
         # Sort via priority steamids (too lazy, later)
-        # Calculate price
-        buy_price = {
-            "keys": 0,
-            "metal": 0
-        }
-        sell_price = {
-            "keys": 0,
-            "metal": 0
-        }
+        buy_price = dict()
+        sell_price = dict()
+        external_price = self.pricelist.get_external_price(sku)
+        if len(buy_listings) < 3: # Partial fallback, amount of listings needed to calculate a price
+            raise Exception("Not enough buy listings.")
+        else:
+            total_value = {
+                "keys": 0,
+                "metal": 0
+            }
+            for index, listing in enumerate(buy_listings):
+                if index == 3: # Amount of listings needed to calculate a price
+                    break
+                if "keys" in listing["currencies"]:
+                    total_value["keys"] += listing["currencies"]["keys"]
+                if "metal" in listing["currencies"]:
+                    total_value["metal"] += listing["currencies"]["metal"]
+            total_value = self.to_metal(total_value, self.pricelist.key_price["buy"]) / 3 # Limiter
+            buy_price = self.to_currencies(total_value, self.pricelist.key_price["buy"])
+        print(sku["name"])
+        print(buy_price)
         raise Exception("Cannot price yet.")
     
     # Helper functions
@@ -134,6 +147,13 @@ class Pricer:
         metal += currencies.get("keys", 0) * key_price["metal"]
         metal += currencies.get("metal", 0)
         return self.get_right(metal)
+    def to_currencies(self, metal: int, key_price: dict):
+        currencies = {}
+        keys = metal // key_price["metal"]
+        metal -= keys * key_price["metal"]
+        currencies["keys"] = keys
+        currencies["metal"] = self.get_right(metal)
+        return currencies
     def get_right(self, v):
         i = floor(v)
         f = round((v - i) / 0.11)
