@@ -117,7 +117,19 @@ class Pricer:
         # Sort from lowest to high and highest to low
         buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
         sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
-        # Sort via priority steamids (too lazy, later)
+        # Remove blocked attributes by their defindex
+        for listing in buy_listings:
+            if "attributes" in listing["item"]:
+                for attribute in listing["item"]["attributes"]:
+                    for blocked_attribute in self.blocked_attributes:
+                        if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
+                            buy_listings.remove(listing)
+        for listing in sell_listings:
+            if "attributes" in listing["item"]:
+                for attribute in listing["item"]["attributes"]:
+                    for blocked_attribute in self.blocked_attributes:
+                        if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
+                            sell_listings.remove(listing)
         # Also filter outliers
         buy_price = dict()
         sell_price = dict()
