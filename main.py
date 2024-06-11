@@ -9,9 +9,9 @@ from threading import Thread
 from src.pricer import Pricer
 from src.pricelist import Pricelist
 from os import kill, getpid
-from signal import SIGABRT
 from asyncio import run
 from src.server import init, socket
+from signal import signal, SIGINT, SIGABRT, SIGBREAK
 
 logging.basicConfig(
     handlers=[
@@ -63,10 +63,13 @@ init(
     _pricer=pricer
 )
 
-logger.warning("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
-logger.info("Saving pricelist...")
-pricelist.write_pricelist()
-logger.info("Shutting backpacktf database down...")
-run(backpacktf.close_connection())
-print("Goodbye.")
-kill(getpid(), SIGABRT) # This is a very dirty way of killing the program, but its probably the only useful way.
+def shutdown():
+    logger.warning("Shutting down...")
+    logger.info("Shutting database down...")
+    run(backpacktf.close_connection())
+    # "stop" server idk
+    print("Goodbye :(")
+    kill(getpid(), SIGABRT)
+
+signal(SIGINT, shutdown())
+signal(SIGBREAK, shutdown())
