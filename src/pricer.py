@@ -8,6 +8,7 @@ from src.helpers import set_interval_and_wait
 from src.pricelist import Pricelist
 from threading import Thread
 from math import floor
+from time import time
 
 class Pricer:
     logger = logging.getLogger(__name__)
@@ -143,9 +144,8 @@ class Pricer:
         buy_metal = 0
         sell_metal = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
-        if len(buy_listings) < self.buy_listings_reference: # Partially validate using the external price
-            buy_price = external_price["buy"]
-            buy_metal = self.to_metal(buy_price["metal"], key_buy)
+        if len(buy_listings) < self.buy_listings_reference:
+            raise Exception("Not enough buy listings to calculate from.")
         else:
             for index, listing in enumerate(buy_listings):
                 if index == self.buy_listings_reference:
@@ -154,9 +154,12 @@ class Pricer:
                     buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
+            buy_metal = self.get_right(self.to_metal(buy_price, key_buy) / self.buy_listings_reference)
         if len(sell_listings) < 1:
+            self.logger.debug("Using default increase for sell listings...")
             sell_price = self.to_currencies(buy_metal, key_buy)
-            sell_price = self.get_right(sell_price["metal"] + self.default_increase)
+            sell_price["metal"] = self.get_right(sell_price["metal"] + self.default_increase)
+            sell_metal = self.to_metal(sell_price, key_sell)
         else:
             for index, listing in enumerate(sell_listings):
                 if index == self.sell_listings_reference:
@@ -165,14 +168,24 @@ class Pricer:
                     sell_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
+            sell_metal = self.get_right(self.to_metal(sell_price, key_sell) / self.sell_listings_reference)
         fallback_buy_metal = self.to_metal(external_price["buy"], key_buy)
         fallback_sell_metal = self.to_metal(external_price["sell"], key_sell)
-        buy_difference = self.max_percentage_differences(fallback_buy_metal, buy_metal)
-        sell_difference = self.max_percentage_differences(fallback_sell_metal, sell_metal)
-        print(sku["name"])
-        print(buy_difference)
-        print(sell_difference)
-        raise Exception("Cannot price yet.")
+        buy_difference = self.calculate_percentage_difference(fallback_buy_metal, buy_metal)
+        sell_difference = self.calculate_percentage_difference(fallback_sell_metal, sell_metal)
+        if buy_difference > self.max_percentage_differences["buy"]:
+            raise Exception("Pricer is buying for too much.")
+        if sell_difference < self.max_percentage_differences["sell"]:
+            raise Exception("Pricer is selling for too little.")
+        # We did it, yay
+        return {
+            "name": sku["name"],
+            "sku": sku["sku"],
+            "source": "bptf",
+            "time": int(time()),
+            "buy": self.to_currencies(buy_metal, key_buy),
+            "sell": self.to_currencies(sell_metal, key_buy)
+        }
     
     # Helper functions
     def calculate_percentage_difference(self, value1, value2):
