@@ -6,13 +6,12 @@ import sys
 from json import load
 from src.backpacktf import BackpackTF
 from threading import Thread
-from flask import Flask, Response
-from flask_socketio import SocketIO
 from src.pricer import Pricer
 from src.pricelist import Pricelist
 from os import kill, getpid
 from signal import SIGABRT
 from asyncio import run
+from src.server import init, socket
 
 logging.basicConfig(
     handlers=[
@@ -28,9 +27,6 @@ logger.debug("Logger started.")
 with open("config.json", "r") as f:
     config = load(f)
 
-app = Flask(__name__)
-socket_io = SocketIO(app)
-
 bptf_config = config["backpackTf"]
 ptf_config = config["pricesTf"]
 mongo_config = config["mongo"]
@@ -39,7 +35,7 @@ interval_config = config["intervals"]
 logger.debug("Initializing classes...")
 pricelist = Pricelist(
     config,
-    socket_io
+    socket
 )
 pricer = Pricer(
     config,
@@ -60,30 +56,11 @@ websocket_thread = Thread(target=backpacktf.start_websocket)
 
 pricer.price_items()
 
-# Socket notifications
-@socket_io.on("connect")
-def on_connect(socket):
-    logger.info(f"A new client connected to the socket: {socket}. (Should they be authenticated?)")
-    pricelist.get_key_price() # Should we also emit all prices?
-@socket_io.on("disconnect")
-def on_disconnect():
-    logger.info(f"A client disconnected, we didn't even get to say goodbye :(")
-# Routes
-@app.get("/items")
-def get_items():
-    return pricelist.pricelist
-
-@app.get("/items/<sku>")
-def get_item(sku: str):
-    for item in pricelist.pricelist["items"]:
-        if item["sku"] == sku:
-            return item
-    return Response(status=404)
-
-logger.debug("Starting API server...")
-app.run(
+init(
     host=config["host"],
-    port=config["port"]
+    port=config["port"],
+    _pricelist=pricelist,
+    _pricer=pricer
 )
 
 logger.warning("PROGRAM IS GOING DOWN NOW! !! FORCING PROCESS TO EXIT !!")
