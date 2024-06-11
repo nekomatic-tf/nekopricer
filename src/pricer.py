@@ -69,6 +69,7 @@ class Pricer:
                         continue # We don't price the key
                     price = self.calculate_price(sku) # Attempt to price this specific item (will throw an exception if it fails)
                     self.pricelist.update_price(price)
+                    remaining -= 1
                     custom += 1
                     self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
                 except Exception as e:
