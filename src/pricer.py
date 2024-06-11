@@ -8,7 +8,6 @@ from src.helpers import set_interval_and_wait
 from src.pricelist import Pricelist
 from threading import Thread
 from math import floor
-from re import match
 
 class Pricer:
     logger = logging.getLogger(__name__)
@@ -32,9 +31,10 @@ class Pricer:
         self.schema_server_url = config["pricesTf"]["schemaServer"]
         self.only_use_bots = config["onlyBots"]
         self.default_increase = config["defaultIncrease"]
+        self.buy_listings_reference = config["buyListingsReference"]
+        self.sell_listings_reference = config["sellListingsReference"]
         self.pricelist = pricelist
         self.event_loop = new_event_loop()
-        self.price_items()
         set_interval_and_wait(self.price_items, self.price_interval)
         return
 
@@ -94,7 +94,6 @@ class Pricer:
         return
     
     def calculate_price(self, sku: dict):
-        #listings = self.event_loop.run_until_complete(self.database.get_listings(sku["name"]))
         buy_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "buy"))
         sell_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "sell"))
         # Perform a series of filtering before making sure we have enough listings
@@ -109,11 +108,11 @@ class Pricer:
         sell_listings = [listing for listing in sell_listings if all(excluded not in listing["details"] for excluded in self.excluded_listing_descriptions)]
         # Filter out marketplace.tf listings
         buy_listings = [listing for listing in buy_listings if "usd" not in listing["currencies"]]
-        sell_listings = [listing for listing in buy_listings if "usd" not in listing["currencies"]]
+        sell_listings = [listing for listing in sell_listings if "usd" not in listing["currencies"]]
         # Filter out blocked attributes (ILL DO THIS LATER)
         # Make sure we have enough listings to do some math
-        if len(buy_listings) == 0 or len(sell_listings) == 0:
-            raise Exception("No listings were found.")
+        if len(buy_listings) == 0:
+            raise Exception("No buy listings were found.")
         # Sort from lowest to high and highest to low
         buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
         sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
@@ -130,31 +129,56 @@ class Pricer:
                     for blocked_attribute in self.blocked_attributes:
                         if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
                             sell_listings.remove(listing)
-        # Also filter outliers
-        buy_price = dict()
-        sell_price = dict()
-        external_price = self.pricelist.get_external_price(sku)
-        if len(buy_listings) < 3: # Partial fallback, amount of listings needed to calculate a price
-            raise Exception("Not enough buy listings.")
+        # Also filter outliers (SOON)
+        key_buy = self.pricelist.key_price["buy"]
+        key_sell = self.pricelist.key_price["sell"]
+        buy_price = {
+            "keys": 0,
+            "metal": 0
+        }
+        sell_price = {
+            "keys": 0,
+            "metal": 0
+        }
+        buy_metal = 0
+        sell_metal = 0
+        external_price = self.pricelist.get_external_price(sku) # Get the external price
+        if len(buy_listings) < self.buy_listings_reference: # Partially validate using the external price
+            buy_price = external_price["buy"]
+            buy_metal = self.to_metal(buy_price["metal"], key_buy)
         else:
-            total_value = {
-                "keys": 0,
-                "metal": 0
-            }
             for index, listing in enumerate(buy_listings):
-                if index == 3: # Amount of listings needed to calculate a price
+                if index == self.buy_listings_reference:
                     break
                 if "keys" in listing["currencies"]:
-                    total_value["keys"] += listing["currencies"]["keys"]
+                    buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
-                    total_value["metal"] += listing["currencies"]["metal"]
-            total_value = self.to_metal(total_value, self.pricelist.key_price["buy"]) / 3 # Limiter
-            buy_price = self.to_currencies(total_value, self.pricelist.key_price["buy"])
+                    buy_price["metal"] += listing["currencies"]["metal"]
+        if len(sell_listings) < 1:
+            sell_price = self.to_currencies(buy_metal, key_buy)
+            sell_price = self.get_right(sell_price["metal"] + self.default_increase)
+        else:
+            for index, listing in enumerate(sell_listings):
+                if index == self.sell_listings_reference:
+                    break
+                if "keys" in listing["currencies"]:
+                    sell_price["keys"] += listing["currencies"]["keys"]
+                if "metal" in listing["currencies"]:
+                    sell_price["metal"] += listing["currencies"]["metal"]
+        fallback_buy_metal = self.to_metal(external_price["buy"], key_buy)
+        fallback_sell_metal = self.to_metal(external_price["sell"], key_sell)
+        buy_difference = self.max_percentage_differences(fallback_buy_metal, buy_metal)
+        sell_difference = self.max_percentage_differences(fallback_sell_metal, sell_metal)
         print(sku["name"])
-        print(buy_price)
+        print(buy_difference)
+        print(sell_difference)
         raise Exception("Cannot price yet.")
     
     # Helper functions
+    def calculate_percentage_difference(self, value1, value2):
+        if value1 == 0:
+            return 0 if value2 == 0 else 100  # Handle division by zero
+        return ((value2 - value1) / abs(value1)) * 100
     def to_metal(self, currencies: dict, key_price: dict):
         metal = 0
         metal += currencies.get("keys", 0) * key_price["metal"]

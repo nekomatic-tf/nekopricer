@@ -58,6 +58,8 @@ logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
 #websocket_thread.start()
 
+pricer.price_items()
+
 # Socket notifications
 @socket_io.on("connect")
 def on_connect(socket):
