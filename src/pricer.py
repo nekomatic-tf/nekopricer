@@ -31,9 +31,10 @@ class Pricer:
         self.blocked_attributes = config["blockedAttributes"]
         self.schema_server_url = config["pricesTf"]["schemaServer"]
         self.only_use_bots = config["onlyBots"]
-        self.default_increase = config["defaultIncrease"]
-        self.buy_listings_reference = config["buyListingsReference"]
-        self.sell_listings_reference = config["sellListingsReference"]
+        self.buy_listing_amount = config["buyListingAmount"]
+        self.sell_listing_amount = config["sellListingAmount"]
+        self.undercut = config["undercut"]
+        self.overcut = config["overcut"]
         self.pricelist = pricelist
         self.event_loop = new_event_loop()
         set_interval_and_wait(self.price_items, self.price_interval)
@@ -144,31 +145,28 @@ class Pricer:
         buy_metal = 0
         sell_metal = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
-        if len(buy_listings) < self.buy_listings_reference:
+        if len(buy_listings) < self.buy_listing_amount:
             raise Exception("Not enough buy listings to calculate from.")
         else:
             for index, listing in enumerate(buy_listings):
-                if index == self.buy_listings_reference:
+                if index == self.buy_listing_amount:
                     break
                 if "keys" in listing["currencies"]:
                     buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
-            buy_metal = self.get_right(self.to_metal(buy_price, key_buy) / self.buy_listings_reference)
+            buy_metal = self.get_right(self.to_metal(buy_price, key_buy) / self.buy_listing_amount)
         if len(sell_listings) < 1:
-            self.logger.debug("Using default increase for sell listings...")
-            sell_price = self.to_currencies(buy_metal, key_buy)
-            sell_price["metal"] = self.get_right(sell_price["metal"] + self.default_increase)
-            sell_metal = self.to_metal(sell_price, key_sell)
+            raise Exception("Not enough sell listings to calculate from.")
         else:
             for index, listing in enumerate(sell_listings):
-                if index == self.sell_listings_reference:
+                if index == self.sell_listing_amount:
                     break
                 if "keys" in listing["currencies"]:
                     sell_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
-            sell_metal = self.get_right(self.to_metal(sell_price, key_sell) / self.sell_listings_reference)
+            sell_metal = self.get_right(self.to_metal(sell_price, key_sell) / self.sell_listing_amount)
         fallback_buy_metal = self.to_metal(external_price["buy"], key_buy)
         fallback_sell_metal = self.to_metal(external_price["sell"], key_sell)
         buy_difference = self.calculate_percentage_difference(fallback_buy_metal, buy_metal)

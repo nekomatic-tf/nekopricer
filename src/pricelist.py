@@ -30,7 +30,6 @@ class Pricelist:
         self.read_item_list()
         self.write_item_list()
         self.read_pricelist()
-        self.clean_pricelist()
         self.get_external_pricelist()
         self.get_key_price()
         self.write_pricelist()
@@ -97,8 +96,7 @@ class Pricelist:
         self.logger.info("Wrote pricelist.")
         return
     # Remove items that aren't in the item_list
-    # NOTE: Has some bugs with the "The" prefix at the start of some items, but I don't really see it as an issue
-    # Although, when the pricer starts it wipes all items, so I guess it doesn't really.. matter? IDK this function is useless
+    '''
     def clean_pricelist(self):
         p_items = []
         for item in self.item_list["items"]:
@@ -109,6 +107,7 @@ class Pricelist:
         self.logger.info(f"Cleaned {len(self.pricelist["items"]) - len(p_items)} item(s) off of the pricelist.")
         self.pricelist["items"] = p_items
         return
+    '''
     def get_key_price(self):
         self.key_price = self.get_external_price({
             "sku": "5021;6",

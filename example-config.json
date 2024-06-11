@@ -35,9 +35,10 @@
         "pricelist": 60
     },
     "onlyBots": true,
-    "defaultIncrease": 0.11,
-    "listingReferenceBuy": 3,
-    "listingReferenceSell": 3,
+    "undercut": 0.11,
+    "overcut": 0.11,
+    "buyListingAmount": 3,
+    "sellListingAmount": 3,
     "excludedSteamIDs": [
         "76561199384015307",
         "76561199495073910",
