@@ -36,6 +36,8 @@
     },
     "onlyBots": true,
     "defaultIncrease": 0.11,
+    "listingReferenceBuy": 3,
+    "listingReferenceSell": 3,
     "excludedSteamIDs": [
         "76561199384015307",
         "76561199495073910",

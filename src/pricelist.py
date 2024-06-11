@@ -97,6 +97,8 @@ class Pricelist:
         self.logger.info("Wrote pricelist.")
         return
     # Remove items that aren't in the item_list
+    # NOTE: Has some bugs with the "The" prefix at the start of some items, but I don't really see it as an issue
+    # Although, when the pricer starts it wipes all items, so I guess it doesn't really.. matter? IDK this function is useless
     def clean_pricelist(self):
         p_items = []
         for item in self.item_list["items"]:
