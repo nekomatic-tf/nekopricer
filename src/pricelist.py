@@ -29,7 +29,6 @@ class Pricelist:
         self.socket_io = socket_io
         self.read_item_list()
         self.write_item_list()
-        self.read_pricelist()
         self.get_external_pricelist()
         self.get_key_price()
         self.write_pricelist()

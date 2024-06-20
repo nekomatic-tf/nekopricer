@@ -133,16 +133,10 @@ class Pricer:
                         if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
                             sell_listings.remove(listing)
         # Also filter outliers (SOON)
-        key_buy = self.pricelist.key_price["buy"]
-        key_sell = self.pricelist.key_price["sell"]
-        buy_price = {
-            "keys": 0,
-            "metal": 0
-        }
-        sell_price = {
-            "keys": 0,
-            "metal": 0
-        }
+        key_buy_price = self.pricelist.key_price["buy"]
+        key_sell_price = self.pricelist.key_price["sell"]
+        buy_price = { "keys": 0, "metal": 0 }
+        sell_price = { "keys": 0, "metal": 0 }
         buy_metal = 0
         sell_metal = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
@@ -156,7 +150,7 @@ class Pricer:
                     buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
-            buy_metal = self.get_right(self.to_metal(buy_price, key_buy) / self.buy_listing_amount)
+            buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / self.buy_listing_amount)
         if len(sell_listings) < 1:
             raise Exception("Not enough sell listings to calculate from.")
         else:
@@ -167,9 +161,13 @@ class Pricer:
                     sell_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
-            sell_metal = self.get_right(self.to_metal(sell_price, key_sell) / self.sell_listing_amount)
-        fallback_buy_metal = self.to_metal(external_price["buy"], key_buy)
-        fallback_sell_metal = self.to_metal(external_price["sell"], key_sell)
+            sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / self.sell_listing_amount)
+        if buy_metal > sell_metal:
+            raise Exception("Buy price is higher than the sell price.")
+        if buy_metal == sell_metal: # Just going to raise an exception for now
+            raise Exception("Buy price is the same as the sell price.")
+        fallback_buy_metal = self.to_metal(external_price["buy"], key_buy_price)
+        fallback_sell_metal = self.to_metal(external_price["sell"], key_sell_price)
         buy_difference = self.calculate_percentage_difference(fallback_buy_metal, buy_metal)
         sell_difference = self.calculate_percentage_difference(fallback_sell_metal, sell_metal)
         if buy_difference > self.max_percentage_differences["buy"]:
@@ -180,10 +178,10 @@ class Pricer:
         return {
             "name": sku["name"],
             "sku": sku["sku"],
-            "source": "bptf",
+            "source": "nekopricer",
             "time": int(time()),
-            "buy": self.to_currencies(buy_metal, key_buy),
-            "sell": self.to_currencies(sell_metal, key_buy)
+            "buy": self.to_currencies(buy_metal, key_buy_price),
+            "sell": self.to_currencies(sell_metal, key_sell_price)
         }
     
     # Helper functions
@@ -206,4 +204,4 @@ class Pricer:
     def get_right(self, v):
         i = floor(v)
         f = round((v - i) / 0.11)
-        return float("{:.2f}".format(i + (f if f == 9 else f * 0.11)))
+        return round(i + (f == 9 or f * 0.11), 2)

@@ -52,9 +52,9 @@ backpacktf = BackpackTF(
 
 logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
-#websocket_thread.start()
+websocket_thread.start()
 
-pricer.price_items()
+#pricer.price_items()
 
 init(
     host=config["host"],
