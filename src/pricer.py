@@ -151,7 +151,7 @@ class Pricer:
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
             buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / self.buy_listing_amount)
-        if len(sell_listings) < 1:
+        if len(sell_listings) < self.sell_listing_amount:
             raise Exception("Not enough sell listings to calculate from.")
         else:
             for index, listing in enumerate(sell_listings):
@@ -166,6 +166,10 @@ class Pricer:
             raise Exception("Buy price is higher than the sell price.")
         if buy_metal == sell_metal: # Just going to raise an exception for now
             raise Exception("Buy price is the same as the sell price.")
+        if buy_metal == 0:
+            raise Exception("Buy price cannot be zero.")
+        if sell_metal == 0:
+            raise Exception("Sell price cannot be zero.")
         fallback_buy_metal = self.to_metal(external_price["buy"], key_buy_price)
         fallback_sell_metal = self.to_metal(external_price["sell"], key_sell_price)
         buy_difference = self.calculate_percentage_difference(fallback_buy_metal, buy_metal)
