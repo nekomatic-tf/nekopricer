@@ -62,6 +62,7 @@ class Pricer:
             remaining = total
             skus = [{"sku": sku, "name": name} for sku, name in zip(skus, items)] # Produce a reasonable format iterate
             for sku in skus:
+                print(sku)
                 try:
                     if sku["sku"] == "5021;6" or sku["name"] == "Mann Co. Supply Crate Key":     
                         remaining -= 1

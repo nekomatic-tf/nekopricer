@@ -130,7 +130,7 @@ class Pricelist:
     def get_external_price(self, item: dict):
         try:
             for e_item in self.external_pricelist["items"]:
-                if e_item["sku"] == item["sku"] or e_item["name"] == item["name"] and not item["sku"] == "5021;6" and not item["name"] == "Mann Co. Supply Crate Key":
+                if e_item["sku"] == item["sku"] and not item["sku"] == "5021;6":
                     return e_item # We found the item, exit
             if not item["sku"] == "5021;6" or not item["name"] == "Mann Co. Supply Crate Key":
                 self.logger.warning(f"Failed to find a price for {item["name"]}/{item["sku"]} in the pricelist array.")
