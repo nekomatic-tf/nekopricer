@@ -1,0 +1,99 @@
+{
+    "backpackTf": {
+        "apiKey": "",
+        "accessToken": "",
+        "websocket": "wss://ws.backpack.tf/events"
+    },
+    "pricesTf": {
+        "api": "https://api2.prices.tf",
+        "websocket": "wss://ws.prices.tf",
+        "schemaServer": "https://schema.autobot.tf",
+        "autobotServer": "https://autobot.tf"
+    },
+    "steamAPIKey": "",
+    "mongo": {
+        "uri": "mongodb://",
+        "db": "backpacktf",
+        "collection": "listings"
+    },
+    "minio": {
+        "endpoint": "",
+        "key": "",
+        "secret": "",
+        "bucket": "",
+        "secure": false
+    },
+    "host": "localhost",
+    "port": 3456,
+    "maxPercentageDifferences": {
+        "buy": 5,
+        "sell": -8
+    },
+    "intervals": {
+        "snapshot": 60,
+        "price": 60,
+        "pricelist": 60
+    },
+    "onlyBots": true,
+    "undercut": 0.11,
+    "overcut": 0.11,
+    "buyListingAmount": 3,
+    "sellListingAmount": 3,
+    "excludedSteamIDs": [
+        "76561199384015307",
+        "76561199495073910",
+        "76561199222202498",
+        "76561199501640256",
+        "76561199501799493",
+        "76561199465040669",
+        "76561199468045911",
+        "76561198871163068",
+        "76561198274855163",
+        "76561199523234411",
+        "76561199500884711",
+        "76561199518117301",
+        "76561199181551276",
+        "76561198266870398",
+        "76561199402715445",
+        "76561198094818081",
+        "76561198068640262",
+        "76561198380634252",
+        "76561199543568974",
+        "76561199542850733",
+        "76561199545913929",
+        "76561199545638184",
+        "76561199545797558",
+        "76561199545847539",
+        "76561198170365551",
+        "76561199530079519",
+        "76561199530617017",
+        "76561199522203126"
+        
+    ],
+    "trustedSteamIDs": [
+        "76561199110778355",
+        "76561199057187154",
+        "76561198225717852",
+        "76561199118546232",
+        "76561198316831771",
+        "76561198428177474",
+        "76561199072654974",
+        "76561198453530349",
+        "76561198259733876"
+    ],
+    "excludedListingDescriptions": [
+        "exorcism",
+        "ex",
+        "spell",
+        "spells",
+        "spelled",
+        "footsteps",
+        "hh",
+        "horseshoes/rotten orange",
+        "headless horse",
+        "pumpkin bombs"
+    ],
+    "blockedAttributes": {
+        "painted_items": 142
+    }
+}

@@ -1,0 +1,1 @@
+# Large pricelists can cause a double execution of the pricer loop at startup (if its set to start)

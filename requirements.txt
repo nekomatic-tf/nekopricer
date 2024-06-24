@@ -1,0 +1,10 @@
+logging
+pymongo
+motor
+asyncio
+tf2-utils
+flask
+pathlib
+minio
+flask-socketio
+requests
