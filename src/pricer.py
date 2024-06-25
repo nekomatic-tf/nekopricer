@@ -185,6 +185,16 @@ class Pricer:
         buy_metal = 0
         sell_metal = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
+        '''
+        Nekopricer Documentation / rant
+        Limits:
+        -1 - Pricer will undercut or overcut the lowest listing, or potentially an offset listing (outlier shit)
+        0 - Pricer will match the first buy and sell listing
+        1 - Pricer will match the first buy and sell listing (as well as calculate average?(pointless))
+        2+ - Pricer will get an average from the amount of buy and sell listings
+        limit_strict: True - Pricer needs to the desired amount of listings to price
+        limit_strict: False - Pricer can price using less than the desired amount of listings
+        '''
         if len(buy_listings) < self.buy_limit and self.buy_limit_strict == True:
             raise Exception("Not enough buy listings to calculate from.")
         else:
