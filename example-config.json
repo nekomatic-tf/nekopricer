@@ -34,11 +34,15 @@
         "price": 60,
         "pricelist": 60
     },
-    "onlyBots": true,
-    "undercut": 0.11,
-    "overcut": 0.11,
-    "buyListingAmount": 3,
-    "sellListingAmount": 3,
+    "pricingTolerances": {
+        "onlyBots": true,
+        "undercut": 0.11,
+        "overcut": 0.11,
+        "buyLimit": 3,
+        "sellLimit": 3,
+        "buyLimitStrict": true,
+        "sellLimitStrict": true
+    },
     "excludedSteamIDs": [
         "76561199384015307",
         "76561199495073910",
@@ -68,7 +72,6 @@
         "76561199530079519",
         "76561199530617017",
         "76561199522203126"
-        
     ],
     "trustedSteamIDs": [
         "76561199110778355",

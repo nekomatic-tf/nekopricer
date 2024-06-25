@@ -3,12 +3,13 @@
 import logging
 from src.database import ListingDBManager
 from asyncio import new_event_loop
-from requests import post
+from requests import post, get
 from src.helpers import set_interval_and_wait
 from src.pricelist import Pricelist
 from threading import Thread
 from math import floor
 from time import time
+from urllib.parse import quote
 
 class Pricer:
     logger = logging.getLogger(__name__)
@@ -30,11 +31,13 @@ class Pricer:
         self.excluded_listing_descriptions = config["excludedListingDescriptions"]
         self.blocked_attributes = config["blockedAttributes"]
         self.schema_server_url = config["pricesTf"]["schemaServer"]
-        self.only_use_bots = config["onlyBots"]
-        self.buy_listing_amount = config["buyListingAmount"]
-        self.sell_listing_amount = config["sellListingAmount"]
-        self.undercut = config["undercut"]
-        self.overcut = config["overcut"]
+        self.only_use_bots = config["pricingTolerances"]["onlyBots"]
+        self.undercut = config["pricingTolerances"]["undercut"]
+        self.overcut = config["pricingTolerances"]["overcut"]
+        self.buy_limit = config["pricingTolerances"]["buyLimit"]
+        self.sell_limit = config["pricingTolerances"]["sellLimit"]
+        self.buy_limit_strict = config["pricingTolerances"]["buyLimitStrict"]
+        self.sell_limit_strict = config["pricingTolerances"]["sellLimitStrict"]
         self.pricelist = pricelist
         self.event_loop = new_event_loop()
         set_interval_and_wait(self.price_items, self.price_interval)
@@ -93,9 +96,39 @@ class Pricer:
         except Exception as e:
             self.logger.error(e)
     
-    def price_item(self, sku: dict): # Simply runs the protocol to price a specific item (useful for pricecheck?)
-        return
-    
+    # NOTE: This function won't do any IO as its not meant to be the main pricer function, its just meant to price one,
+    # and update said item in the pricelist, it doesn't fetch the array or anything, no need to (and the main function might remove that too)
+    def price_item(self, sku: dict): # Simply prices and emits a new price for a single item, and ignores the whitelist
+        try:
+            sku["name"] = get(f"{self.schema_server_url}/getName/fromSku/{quote(sku["sku"])}")
+            if not sku["name"].status_code == 200:
+                raise Exception("Issue getting name from SKU.")
+            if not type(sku["name"].json()) == dict:
+                raise Exception("Issue getting name from SKU.")
+            sku["name"] = sku["name"].json()["name"]
+            try:
+                price = self.calculate_price(sku)
+                if sku["sku"] == "5021;6": # What the FUCK is this? (Answer: Key pricing code)
+                    price["buy"]["metal"] = self.to_metal(price["buy"], self.pricelist.key_price["buy"])
+                    price["sell"]["metal"] = self.to_metal(price["sell"], self.pricelist.key_price["sell"])
+                    price["buy"]["keys"] = 0
+                    price["sell"]["keys"] = 0
+                    self.pricelist.key_price = price
+                self.pricelist.update_price(price)
+                self.pricelist.emit_price(price)
+                self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
+            except Exception as e:
+                self.logger.error(f"Failed to price item {sku["name"]}/{sku["sku"]} using pricer: {e}")
+                try:
+                    price = self.pricelist.get_external_price(sku)
+                    self.pricelist.update_price(price)
+                    self.pricelist.emit_price(price)
+                    self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using fallback.")
+                except Exception as e:
+                    self.logger.error(f"Failed to price {sku["name"]}/{sku["sku"]} using fallback: {e}")
+                    print("!! THIS IS VERY BAD CHECK CODE !!")
+        except Exception as e:
+            self.logger.error(e)
     def calculate_price(self, sku: dict):
         buy_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "buy"))
         sell_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "sell"))
@@ -112,10 +145,6 @@ class Pricer:
         # Filter out marketplace.tf listings
         buy_listings = [listing for listing in buy_listings if "usd" not in listing["currencies"]]
         sell_listings = [listing for listing in sell_listings if "usd" not in listing["currencies"]]
-        # Filter out blocked attributes (ILL DO THIS LATER)
-        # Make sure we have enough listings to do some math
-        if len(buy_listings) == 0:
-            raise Exception("No buy listings were found.")
         # Sort from lowest to high and highest to low
         buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
         sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
@@ -132,6 +161,11 @@ class Pricer:
                     for blocked_attribute in self.blocked_attributes:
                         if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
                             sell_listings.remove(listing)
+        # Make sure we have enough listings to do some math
+        if len(buy_listings) == 0:
+            raise Exception("No buy listings were found.")
+        if len(sell_listings) == 0:
+            raise Exception("No sell listings were found.")
         # Also filter outliers (SOON)
         key_buy_price = self.pricelist.key_price["buy"]
         key_sell_price = self.pricelist.key_price["sell"]
@@ -140,28 +174,28 @@ class Pricer:
         buy_metal = 0
         sell_metal = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
-        if len(buy_listings) < self.buy_listing_amount:
+        if len(buy_listings) < self.buy_limit and self.buy_limit_strict == True:
             raise Exception("Not enough buy listings to calculate from.")
         else:
             for index, listing in enumerate(buy_listings):
-                if index == self.buy_listing_amount:
+                if index == self.buy_limit:
                     break
                 if "keys" in listing["currencies"]:
                     buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
-            buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / self.buy_listing_amount)
-        if len(sell_listings) < self.sell_listing_amount:
+            buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / self.buy_limit)
+        if len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
             raise Exception("Not enough sell listings to calculate from.")
         else:
             for index, listing in enumerate(sell_listings):
-                if index == self.sell_listing_amount:
+                if index == self.sell_limit:
                     break
                 if "keys" in listing["currencies"]:
                     sell_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
-            sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / self.sell_listing_amount)
+            sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / self.sell_limit)
         if buy_metal > sell_metal:
             raise Exception("Buy price is higher than the sell price.")
         if buy_metal == sell_metal: # Just going to raise an exception for now

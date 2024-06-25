@@ -19,13 +19,22 @@ def on_disconnect():
 # Routes
 @app.get("/items")
 def get_items():
+    logger.info(f"Got pricelist.")
     return pricelist.pricelist
 @app.get("/items/<sku>")
 def get_item(sku: str):
     for item in pricelist.pricelist["items"]:
         if item["sku"] == sku:
             return item
+    logger.info(f"Got price for {sku}.")
     return Response(status=404)
+@app.post("/items/<sku>")
+def check_item(sku: str):
+    pricer.price_item(sku={
+        "sku": sku
+    })
+    logger.info(f"Checked price for {sku}.")
+    return sku
 
 def init(
         host: str,
