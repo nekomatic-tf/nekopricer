@@ -110,13 +110,16 @@ class Pricelist:
         return
     '''
     def get_key_price(self):
-        self.key_price = self.get_external_price({
-            "sku": "5021;6",
-            "name": "Mann Co. Supply Crate Key"
-        })
-        self.update_price(self.key_price)
-        self.emit_price(self.key_price)
-        return
+        try:
+            self.key_price = self.get_external_price({
+                "sku": "5021;6",
+                "name": "Mann Co. Supply Crate Key"
+            })
+            self.update_price(self.key_price)
+            self.emit_price(self.key_price)
+            self.logger.info("Refreshed price for Mann Co. Supply Crate Key/5021;6.")
+        except Exception as e:
+            self.logger.error(f"Failed refreshing price for Mann Co. Supply Crate Key/5021;6: {e}")
     def get_external_pricelist(self):
         try:
             response = get(f"{self.autobot_server_url}/json/pricelist-array")

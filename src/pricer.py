@@ -138,6 +138,7 @@ class Pricer:
             "sku": "5021;6",
             "name": "Mann Co. Supply Crate Key"
         })
+        self.logger.info("Refreshed price for Mann Co. Supply Crate Key/5021;6.")
         
     def calculate_price(self, sku: dict):
         buy_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "buy"))
