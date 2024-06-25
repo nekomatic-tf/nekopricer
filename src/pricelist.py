@@ -33,7 +33,9 @@ class Pricelist:
         self.get_key_price()
         self.write_pricelist()
         set_interval(self.get_external_pricelist, config["intervals"]["pricelist"])
-        set_interval(self.get_key_price, config["intervals"]["pricelist"])
+        if config["enforceKeyFallback"] == True: # Key is priced by external API
+            self.logger.info("Key will be priced using the external pricelist.")
+            set_interval(self.get_key_price, config["intervals"]["pricelist"])
         set_interval(self.write_pricelist, 300) # 5 Minutes, just to make sure it stays in sync
         return
     

@@ -4,7 +4,7 @@ import logging
 from src.database import ListingDBManager
 from asyncio import new_event_loop
 from requests import post, get
-from src.helpers import set_interval_and_wait
+from src.helpers import set_interval_and_wait, set_interval
 from src.pricelist import Pricelist
 from threading import Thread
 from math import floor
@@ -38,8 +38,13 @@ class Pricer:
         self.sell_limit = config["pricingTolerances"]["sellLimit"]
         self.buy_limit_strict = config["pricingTolerances"]["buyLimitStrict"]
         self.sell_limit_strict = config["pricingTolerances"]["sellLimitStrict"]
+        self.enforce_key_fallback = config["enforceKeyFallback"]
         self.pricelist = pricelist
         self.event_loop = new_event_loop()
+        if not self.enforce_key_fallback == True: # We are allowed to natively price the key, pricelist won't price key for us
+            self.logger.info("Key will be priced using the pricer.")
+            self.get_key_price()
+            set_interval(self.get_key_price, config["intervals"]["pricelist"])
         set_interval_and_wait(self.price_items, self.price_interval)
         return
 
@@ -107,12 +112,11 @@ class Pricer:
                 raise Exception("Issue getting name from SKU.")
             sku["name"] = sku["name"].json()["name"]
             try:
+                if sku["sku"] == "5021;6" and self.enforce_key_fallback == True: # Enforce fallback for the key if SKU is a key.
+                    raise Exception("Key pricing is disabled.")
                 price = self.calculate_price(sku)
                 if sku["sku"] == "5021;6": # What the FUCK is this? (Answer: Key pricing code)
-                    price["buy"]["metal"] = self.to_metal(price["buy"], self.pricelist.key_price["buy"])
-                    price["sell"]["metal"] = self.to_metal(price["sell"], self.pricelist.key_price["sell"])
-                    price["buy"]["keys"] = 0
-                    price["sell"]["keys"] = 0
+                    price = self.format_key(price)
                     self.pricelist.key_price = price
                 self.pricelist.update_price(price)
                 self.pricelist.emit_price(price)
@@ -129,6 +133,12 @@ class Pricer:
                     print("!! THIS IS VERY BAD CHECK CODE !!")
         except Exception as e:
             self.logger.error(e)
+    def get_key_price(self): # Native pricer version (see pricelist.py for external API version)
+        self.price_item({
+            "sku": "5021;6",
+            "name": "Mann Co. Supply Crate Key"
+        })
+        
     def calculate_price(self, sku: dict):
         buy_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "buy"))
         sell_listings = self.event_loop.run_until_complete(self.database.get_listings_by_intent(sku["name"], "sell"))
@@ -223,6 +233,12 @@ class Pricer:
         }
     
     # Helper functions
+    def format_key(self, price: dict): # Convert the key to pure metal (Only during native pricing)
+        price["buy"]["metal"] = self.to_metal(price["buy"], self.pricelist.key_price["buy"])
+        price["sell"]["metal"] = self.to_metal(price["sell"], self.pricelist.key_price["sell"])
+        price["buy"]["keys"] = 0
+        price["sell"]["keys"] = 0
+        return price
     def calculate_percentage_difference(self, value1, value2):
         if value1 == 0:
             return 0 if value2 == 0 else 100  # Handle division by zero

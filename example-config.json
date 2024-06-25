@@ -43,6 +43,7 @@
         "buyLimitStrict": true,
         "sellLimitStrict": true
     },
+    "enforceKeyFallback": true,
     "excludedSteamIDs": [
         "76561199384015307",
         "76561199495073910",
