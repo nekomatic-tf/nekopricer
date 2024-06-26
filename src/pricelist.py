@@ -45,21 +45,26 @@ class Pricelist:
     def add_item(self, name: str):
         for item in self.item_list["items"]:
             if item["name"] == name:
-                self.logger.debug(f"{item["item"]} is already in item_list.")
+                self.logger.debug(f"{item["name"]} is already in item_list.")
                 return
         self.item_list["items"].append({"name":name})
         self.logger.info(f"Added {name} to the item list.")
+        self.write_item_list()
         return
     def remove_item(self, name: str):
         for item in self.item_list["items"]:
             if item["name"] == name:
                 self.item_list["items"].remove(item)
                 self.logger.info(f"Removed {item["name"]} from the item list.")
+                self.write_item_list()
                 return
         self.logger.debug(f"{name} not found in item_list.")
         return
-    def get_price(self):
-        return
+    def get_price(self, sku: str):
+        for item in self.pricelist["items"]:
+            if item["sku"] == sku:
+                return item
+        return None
     def update_price(self, item: dict):
         for p_item in self.pricelist["items"]:
             if item["name"] == p_item["name"] or item["sku"] == p_item["sku"]:

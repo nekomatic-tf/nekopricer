@@ -4,7 +4,9 @@ from src.pricelist import Pricelist
 from src.pricer import Pricer
 from.backpacktf import BackpackTF
 import logging
+from asyncio import new_event_loop
 
+event_loop = new_event_loop()
 app = Flask(__name__)
 socket = SocketIO(app)
 logger = logging.getLogger("API Server")
@@ -24,11 +26,26 @@ def get_items():
     return pricelist.pricelist
 @app.get("/items/<sku>")
 def get_item(sku: str):
-    for item in pricelist.pricelist["items"]:
-        if item["sku"] == sku:
-            return item
-    logger.info(f"Got price for {sku}.")
-    return Response(status=404)
+    price = pricelist.get_price(sku)
+    if not price == None:
+        return price
+    # Item doesn't exist, add and price
+    try:
+        name = pricelist.to_name(sku)
+        pricelist.add_item(name)
+        pricer.price_item({
+            "sku": sku,
+            "name": name
+        })
+        price = pricelist.get_price(sku)
+        if not price == None: # Item is now priced, and added to the item_list, ready to roll
+            return price 
+        # Well damn, this item is bugged, let's get rid of it.
+        pricelist.remove_item(name)
+        return Response(status=404) # Failed to price etc etc
+    except Exception as e:
+        logger.error(f"Failed to add {sku}: {e}")
+        return Response(status=500)
 @app.post("/items/<sku>")
 def check_item(sku: str):
     try:

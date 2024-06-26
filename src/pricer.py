@@ -3,13 +3,10 @@
 import logging
 from src.database import ListingDBManager
 from asyncio import new_event_loop
-from requests import post, get
 from src.helpers import set_interval_and_wait, set_interval
 from src.pricelist import Pricelist
-from threading import Thread
 from math import floor
 from time import time
-from urllib.parse import quote
 
 class Pricer:
     logger = logging.getLogger(__name__)
