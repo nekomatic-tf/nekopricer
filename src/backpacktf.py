@@ -188,15 +188,17 @@ class BackpackTF:
         listing_count = 0
 
         async for message in websocket:
-            self.logger.info(f"Received {listing_count} events")
+            self.logger.debug(f"Collected {listing_count} total events.")
 
             json_data = loads(message)
 
             if isinstance(json_data, list):
                 create_task(self.handle_list_events(json_data))
+                self.logger.info(f"Recieved {len(json_data)} events.")
                 listing_count += len(json_data)
             else:
                 create_task(self.handle_event(json_data, json_data.get("event")))
+                self.logger.info("Recieved 1 event.")
                 listing_count += 1
 
     async def handle_event(self, data: dict, event: str) -> None:
@@ -255,7 +257,7 @@ class BackpackTF:
                         "steamid": listing_data.get("steamid"),
                         "listing_data": listing_data
                     })
-                    self.logger.info(f"listing-update for {item_name} with intent {listing_data.get('intent')}"
+                    self.logger.debug(f"listing-update for {item_name} with intent {listing_data.get('intent')}"
                         f" and steamid {listing_data.get('steamid')}")
 
                 case "listing-delete":
@@ -264,7 +266,7 @@ class BackpackTF:
                         "intent": data.get("intent"),
                         "steamid": data.get("steamid")
                     })
-                    self.logger.info(f"listing-delete for {item_name} with intent {data.get("intent")}"
+                    self.logger.debug(f"listing-delete for {item_name} with intent {data.get("intent")}"
                                       f" and steamid {data.get("steamid")}")
 
                 case _:
