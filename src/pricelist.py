@@ -51,11 +51,11 @@ class Pricelist:
                 self.pricelist["items"].remove(p_item)
                 break
         self.pricelist["items"].append(item)
-        self.logger.info(f"Updated pricelist with new price for {item["name"]}/{item["sku"]}")
+        self.logger.info(f"Updated pricelist with new price for {item["name"]}/{item["sku"]}.")
         return
     def emit_price(self, item: dict):
         self.socket_io.emit("price", item)
-        self.logger.info(f"Emitted price for {item["name"]}/{item["sku"]}")
+        self.logger.info(f"Emitted price for {item["name"]}/{item["sku"]}.")
         return
     def emit_prices(self):
         total = len(self.pricelist["items"])
@@ -66,7 +66,7 @@ class Pricelist:
                 continue
             self.socket_io.emit("price", item)
             done += 1
-            self.logger.info(f"({done} out of {total}) Emitted price for {item["name"]}/{item["sku"]}")
+            self.logger.info(f"({done} out of {total}) Emitted price for {item["name"]}/{item["sku"]}.")
             sleep(0.3)
         self.logger.info(f"Emitted prices for all {total} items.")
         return

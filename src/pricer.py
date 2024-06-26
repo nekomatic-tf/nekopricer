@@ -198,25 +198,29 @@ class Pricer:
         if len(buy_listings) < self.buy_limit and self.buy_limit_strict == True:
             raise Exception("Not enough buy listings to calculate from.")
         else:
+            denominator = 0
             for index, listing in enumerate(buy_listings):
                 if index == self.buy_limit:
                     break
+                denominator += 1
                 if "keys" in listing["currencies"]:
                     buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
-            buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / self.buy_limit)
+            buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / denominator)
         if len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
             raise Exception("Not enough sell listings to calculate from.")
         else:
+            denominator = 0
             for index, listing in enumerate(sell_listings):
                 if index == self.sell_limit:
                     break
+                denominator += 1
                 if "keys" in listing["currencies"]:
                     sell_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
-            sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / self.sell_limit)
+            sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / denominator)
         if buy_metal > sell_metal:
             raise Exception("Buy price is higher than the sell price.")
         if buy_metal == sell_metal: # Just going to raise an exception for now
