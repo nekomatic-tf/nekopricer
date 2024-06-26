@@ -2,6 +2,7 @@ import websockets
 from json import loads
 from asyncio import Future, create_task, sleep, run
 from src.database import ListingDBManager
+from src.pricelist import Pricelist
 from requests import get
 from time import time
 import logging
@@ -13,7 +14,7 @@ class BackpackTF:
                  collection_name,
                  ws_uri,
                  bptf_token,
-                 prioritized_items: dict):
+                 pricelist: Pricelist):
 
         if not mongo_uri:
             raise ValueError("Mongo URI is required")
@@ -24,7 +25,7 @@ class BackpackTF:
         self.do_we_delete_old_listings = True
         self.snapshot_times = dict()
         self.bptf_token = bptf_token
-        self.prioritized_items = prioritized_items
+        self.pricelist = pricelist
 
     @staticmethod
     async def reformat_event(payload: dict) -> dict:
@@ -115,7 +116,7 @@ class BackpackTF:
         self.logger.info("Refreshing snapshots...")
         self.logger.debug("Refreshing all items one time...")
         # Snapshot everything, once
-        item_names = [item["name"] for item in self.prioritized_items["items"]]
+        item_names = [item["name"] for item in self.pricelist.item_list["items"]]
         for item in item_names:
             try:
                 await self.update_snapshot(item)
@@ -127,7 +128,7 @@ class BackpackTF:
 
         while True:
             self.snapshot_times = await self.mongodb.get_all_snapshot_times()
-            prioritized_item_names = [item["name"] for item in self.prioritized_items["items"]]
+            prioritized_item_names = [item["name"] for item in self.pricelist.item_list["items"]]
             oldest_prioritized_items = sorted(
                 ((k, v) for k, v in self.snapshot_times.items() if k in prioritized_item_names.copy()),
                 key=lambda x: x[1]
@@ -208,7 +209,7 @@ class BackpackTF:
 
         item_name = data.get("item", dict()).get("name")
         # Don't save an item that isn't in our item list
-        item_names = [item["name"] for item in self.prioritized_items["items"]]
+        item_names = [item["name"] for item in self.pricelist.item_list["items"]]
         if not item_name in item_names:
             return
 
@@ -238,7 +239,7 @@ class BackpackTF:
                 continue
 
             # Don't add this item if its not in our item list
-            item_names = [item["name"] for item in self.prioritized_items["items"]]
+            item_names = [item["name"] for item in self.pricelist.item_list["items"]]
             if not item_name in item_names:
                 continue
 

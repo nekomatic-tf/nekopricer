@@ -47,7 +47,7 @@ backpacktf = BackpackTF(
     collection_name=mongo_config["collection"],
     ws_uri=bptf_config["websocket"],
     bptf_token=bptf_config["accessToken"],
-    prioritized_items=pricelist.item_list
+    pricelist=pricelist
 )
 
 logger.debug("Starting websocket...")
