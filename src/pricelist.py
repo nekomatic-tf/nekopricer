@@ -42,9 +42,21 @@ class Pricelist:
         set_interval(self.write_pricelist, config["intervals"]["pricelist"]) # Hardly needed since its erased at startup, but could change in the future, so we keep it
         return
     
-    def add_item(self):
+    def add_item(self, name: str):
+        for item in self.item_list["items"]:
+            if item["name"] == name:
+                self.logger.debug(f"{item["item"]} is already in item_list.")
+                return
+        self.item_list["items"].append({"name":name})
+        self.logger.info(f"Added {name} to the item list.")
         return
-    def remove_item(self):
+    def remove_item(self, name: str):
+        for item in self.item_list["items"]:
+            if item["name"] == name:
+                self.item_list["items"].remove(item)
+                self.logger.info(f"Removed {item["name"]} from the item list.")
+                return
+        self.logger.debug(f"{name} not found in item_list.")
         return
     def get_price(self):
         return
