@@ -58,18 +58,13 @@ class Pricer:
             items = []
             for item in self.pricelist.item_list["items"]:
                 items.append(item["name"])
-            skus = post(f"{self.schema_server_url}/getSku/fromNameBulk", json=items)
-            if not skus.status_code == 200:
-                raise Exception("Issue converting names to SKUs.")
-            if not type(skus.json()) == dict:
-                raise Exception("Issue converting names to SKUs.")
-            skus = skus.json()["skus"]
+            skus = self.pricelist.to_sku_bulk(items)
             total = len(skus)
             remaining = total
             skus = [{"sku": sku, "name": name} for sku, name in zip(skus, items)] # Produce a reasonable format iterate
             for sku in skus:
                 try:
-                    if sku["sku"] == "5021;6" or sku["name"] == "Mann Co. Supply Crate Key":     
+                    if sku["sku"] == "5021;6":     
                         remaining -= 1
                         pricestf += 1
                         continue # We don't price the key
@@ -102,12 +97,7 @@ class Pricer:
     # and update said item in the pricelist, it doesn't fetch the array or anything, no need to (and the main function might remove that too)
     def price_item(self, sku: dict): # Simply prices and emits a new price for a single item, and ignores the whitelist
         try:
-            sku["name"] = get(f"{self.schema_server_url}/getName/fromSku/{quote(sku["sku"])}")
-            if not sku["name"].status_code == 200:
-                raise Exception("Issue getting name from SKU.")
-            if not type(sku["name"].json()) == dict:
-                raise Exception("Issue getting name from SKU.")
-            sku["name"] = sku["name"].json()["name"]
+            sku["name"] = self.pricelist.to_name(sku["sku"])
             try:
                 if sku["sku"] == "5021;6" and self.enforce_key_fallback == True: # Enforce fallback for the key if SKU is a key.
                     raise Exception("Key pricing is disabled.")

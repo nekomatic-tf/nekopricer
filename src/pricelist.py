@@ -3,12 +3,13 @@
 import logging
 from src.storage import S3Engine
 from json import loads, dumps
-from requests import get
+from requests import get, post
 from src.helpers import set_interval
 from tf2_utils import PricesTF
 from time import time
 from flask_socketio import SocketIO
 from time import sleep
+from urllib.parse import quote
 
 class Pricelist:
     logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ class Pricelist:
         self.logger.info("Initializing pricelist...")
         self.pricestf = PricesTF()
         self.autobot_server_url = config["pricesTf"]["autobotServer"]
+        self.schema_server_url = config["pricesTf"]["schemaServer"]
         self.socket_io = socket_io
         self.read_item_list()
         self.write_item_list()
@@ -153,4 +155,33 @@ class Pricelist:
                 "sell": price["sell"]
             }
         except Exception as e:
-            self.logger.error(f"Failed getting price for {item["name"]}/{item["sku"]}: {e}")    
+            self.logger.error(f"Failed getting price for {item["name"]}/{item["sku"]}: {e}")
+    # SKU Conversion Kit Premium Edition
+    def to_sku(self, name: str):
+        sku = get(f"{self.schema_server_url}/getSku/fromName/{quote(name)}")
+        if not sku.status_code == 200:
+            raise Exception("Issue converting name to SKU.")
+        if not type(sku.json()) == dict:
+            raise Exception("Issue converting name to SKU.")
+        return sku.json()["sku"]
+    def to_name(self, sku: str):
+        name = get(f"{self.schema_server_url}/getName/fromSku/{quote(sku)}")
+        if not name.status_code == 200:
+            raise Exception("Issue converting SKU to name.")
+        if not type(name.json()) == dict:
+            raise Exception("Issue converting SKU to name.")
+        return name.json()["name"]
+    def to_sku_bulk(self, names: list):
+        skus = post(f"{self.schema_server_url}/getSku/fromNameBulk", json=names)
+        if not skus.status_code == 200:
+            raise Exception("Issue converting names to SKUs.")
+        if not type(skus.json()) == dict:
+            raise Exception("Issue converting names to SKUs.")
+        return skus.json()["skus"]
+    def to_name_bulk(self, skus: list):
+        names = post(f"{self.schema_server_url}/getName/fromSkuBulk", json=skus)
+        if not names.status_code == 200:
+            raise Exception("Issue converting SKUs into names.")
+        if not type(names.json()) == dict:
+            raise Exception("Issue converting SKUs into names.")
+        return names.json()["names"]
