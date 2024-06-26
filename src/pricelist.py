@@ -31,12 +31,13 @@ class Pricelist:
         self.write_item_list()
         self.get_external_pricelist()
         self.get_key_price()
+        # self.read_pricelist()
         self.write_pricelist()
         set_interval(self.get_external_pricelist, config["intervals"]["pricelist"])
         if config["enforceKeyFallback"] == True: # Key is priced by external API
             self.logger.info("Key will be priced using the external pricelist.")
-            set_interval(self.get_key_price, config["intervals"]["pricelist"])
-        set_interval(self.write_pricelist, 300) # 5 Minutes, just to make sure it stays in sync
+            set_interval(self.get_key_price, config["intervals"]["key"])
+        set_interval(self.write_pricelist, config["intervals"]["pricelist"]) # Hardly needed since its erased at startup, but could change in the future, so we keep it
         return
     
     def add_item(self):

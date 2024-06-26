@@ -43,8 +43,7 @@ class Pricer:
         self.event_loop = new_event_loop()
         if not self.enforce_key_fallback == True: # We are allowed to natively price the key, pricelist won't price key for us
             self.logger.info("Key will be priced using the pricer.")
-            self.get_key_price()
-            set_interval(self.get_key_price, config["intervals"]["pricelist"])
+            set_interval(self.get_key_price, config["intervals"]["key"])
         set_interval_and_wait(self.price_items, self.price_interval)
         return
 
@@ -59,7 +58,6 @@ class Pricer:
             items = []
             for item in self.pricelist.item_list["items"]:
                 items.append(item["name"])
-            self.pricelist.get_external_pricelist()
             skus = post(f"{self.schema_server_url}/getSku/fromNameBulk", json=items)
             if not skus.status_code == 200:
                 raise Exception("Issue converting names to SKUs.")
@@ -94,7 +92,6 @@ class Pricer:
                         failed += 1
                         remaining -= 1
                 self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
-            self.pricelist.write_pricelist()
             self.pricelist.emit_prices()
             self.logger.info(f"\nDONE\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
             self.logger.info(f"Sleeping for {self.price_interval} seconds (If this is the interval loop).")

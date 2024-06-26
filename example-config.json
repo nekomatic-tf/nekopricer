@@ -32,7 +32,8 @@
     "intervals": {
         "snapshot": 60,
         "price": 60,
-        "pricelist": 60
+        "pricelist": 60,
+        "key": 60
     },
     "pricingTolerances": {
         "onlyBots": true,

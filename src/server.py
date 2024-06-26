@@ -12,7 +12,7 @@ logger = logging.getLogger("API Server")
 @socket.on("connect")
 def on_connect(socket):
     logger.info(f"A new client connected to the socket: {socket}. (Should they be authenticated?)")
-    # pricelist.get_key_price() # Should we also emit all prices?
+    pricelist.emit_price(pricelist.key_price)
 @socket.on("disconnect")
 def on_disconnect():
     logger.info(f"A client disconnected, we didn't even get to say goodbye :(")
