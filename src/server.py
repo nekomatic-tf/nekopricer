@@ -2,6 +2,7 @@ from flask import Flask, Response
 from flask_socketio import SocketIO
 from src.pricelist import Pricelist
 from src.pricer import Pricer
+from.backpacktf import BackpackTF
 import logging
 
 app = Flask(__name__)
@@ -30,25 +31,33 @@ def get_item(sku: str):
     return Response(status=404)
 @app.post("/items/<sku>")
 def check_item(sku: str):
-    pricer.price_item(sku={
-        "sku": sku
-    })
-    logger.info(f"Checked price for {sku}.")
-    return sku
+    try:
+        sku = {
+            "sku": sku,
+            "name": pricelist.to_name(sku)
+        }
+        pricer.price_item(sku)
+        logger.info(f"Checked price for {sku["name"]}/{sku["sku"]}.")
+        return sku
+    except Exception as e:
+        logger.info(f"Failed to check price for {sku}: {e}")
+        return Response(status=500)
 
 def init(
-        host: str,
-        port: int,
+        _config: dict,
         _pricelist: Pricelist,
-        _pricer: Pricer
+        _pricer: Pricer,
+        _backpacktf: BackpackTF
 ):
     logger.info("Initializing API server...")
     global pricelist
     global pricer
+    global backpacktf
     pricelist = _pricelist
     pricer = _pricer
+    backpacktf = _backpacktf
     app.run(
-        host,
-        port
+        _config["host"],
+        _config["port"]
     )
 

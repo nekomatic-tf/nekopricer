@@ -57,10 +57,10 @@ websocket_thread.start()
 #pricer.price_items()
 
 init(
-    host=config["host"],
-    port=config["port"],
+    _config=config,
     _pricelist=pricelist,
-    _pricer=pricer
+    _pricer=pricer,
+    _backpacktf=backpacktf
 )
 
 def shutdown():
