@@ -134,6 +134,9 @@ class BackpackTF:
                 key=lambda x: x[1]
             )[:10]
             oldest_prioritized_items = [item[0] for item in oldest_prioritized_items][:10]
+            # Find items missing from the snapshot times
+            missing_items = [item for item in prioritized_item_names if item not in set(self.snapshot_times)]
+            oldest_prioritized_items.extend(missing_items) # Append missing items, so they get their own snapshot
 
             # Unused
             '''oldest_items = sorted(self.snapshot_times.items(), key=lambda x: x[1])[:10]
@@ -162,7 +165,7 @@ class BackpackTF:
         run(self._start_websocket())
 
     async def _start_websocket(self) -> None:
-        #await self.mongodb.delete_old_listings(172800 + time())  # 2 days
+        await self.mongodb.delete_old_listings(172800 + time())  # 2 days
         create_task(self.refresh_snapshots())
 
         # Create index on name

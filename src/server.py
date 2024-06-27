@@ -31,17 +31,14 @@ def get_item(sku: str):
         return price
     # Item doesn't exist, add and price
     try:
-        name = pricelist.to_name(sku)
-        pricelist.add_item(name)
         pricer.price_item({
             "sku": sku,
-            "name": name
+            "name": pricelist.to_name(sku)
         })
         price = pricelist.get_price(sku)
         if not price == None: # Item is now priced, and added to the item_list, ready to roll
+            pricelist.add_item(price["name"])
             return price 
-        # Well damn, this item is bugged, let's get rid of it.
-        pricelist.remove_item(name)
         return Response(status=404) # Failed to price etc etc
     except Exception as e:
         logger.error(f"Failed to add {sku}: {e}")
@@ -49,13 +46,15 @@ def get_item(sku: str):
 @app.post("/items/<sku>")
 def check_item(sku: str):
     try:
-        sku = {
+        pricer.price_item({
             "sku": sku,
             "name": pricelist.to_name(sku)
-        }
-        pricer.price_item(sku)
-        logger.info(f"Checked price for {sku["name"]}/{sku["sku"]}.")
-        return sku
+        })
+        price = pricelist.get_price(sku)
+        if not price == None:
+            logger.info(f"Checked price for {price["name"]}/{price["sku"]}.")
+            return price
+        return Response(status=404) # Return a 404 if we failed to functionally price the item
     except Exception as e:
         logger.info(f"Failed to check price for {sku}: {e}")
         return Response(status=500)
