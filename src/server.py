@@ -34,6 +34,7 @@ def get_item(sku: str):
             "name": price["name"]
         })
         price = pricelist.get_price(sku)
+        pricelist.add_item(price["name"]) # Enforce the whitelist to keep it up to date <- Blame the key for this
         return price
     try: # Item doesn't exist, attempt to price, then add or fail
         pricer.price_item({
