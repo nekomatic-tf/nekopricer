@@ -175,28 +175,40 @@ class Pricelist:
             self.logger.error(f"Failed getting price for {item["name"]}/{item["sku"]}: {e}")
     # SKU Conversion Kit Premium Edition
     def to_sku(self, name: str):
-        sku = get(f"{self.schema_server_url}/getSku/fromName/{quote(name)}")
+        sku = get(
+            url=f"{self.schema_server_url}/getSku/fromName/{quote(name)}"
+        )
         if not sku.status_code == 200:
             raise Exception("Issue converting name to SKU.")
         if not type(sku.json()) == dict:
             raise Exception("Issue converting name to SKU.")
         return sku.json()["sku"]
     def to_name(self, sku: str):
-        name = get(f"{self.schema_server_url}/getName/fromSku/{quote(sku)}")
+        name = get(
+            url=f"{self.schema_server_url}/getName/fromSku/{quote(sku)}",
+            params={"proper": "true"}
+        )
         if not name.status_code == 200:
             raise Exception("Issue converting SKU to name.")
         if not type(name.json()) == dict:
             raise Exception("Issue converting SKU to name.")
         return name.json()["name"]
     def to_sku_bulk(self, names: list):
-        skus = post(f"{self.schema_server_url}/getSku/fromNameBulk", json=names)
+        skus = post(
+            url=f"{self.schema_server_url}/getSku/fromNameBulk",
+            json=names
+        )
         if not skus.status_code == 200:
             raise Exception("Issue converting names to SKUs.")
         if not type(skus.json()) == dict:
             raise Exception("Issue converting names to SKUs.")
         return skus.json()["skus"]
     def to_name_bulk(self, skus: list):
-        names = post(f"{self.schema_server_url}/getName/fromSkuBulk", json=skus)
+        names = post(
+            url=f"{self.schema_server_url}/getName/fromSkuBulk",
+            json=skus,
+            params={"proper": "true"}
+        )
         if not names.status_code == 200:
             raise Exception("Issue converting SKUs into names.")
         if not type(names.json()) == dict:
