@@ -36,6 +36,7 @@ class Pricer:
         self.buy_limit_strict = config["pricingTolerances"]["buyLimitStrict"]
         self.sell_limit_strict = config["pricingTolerances"]["sellLimitStrict"]
         self.enforce_key_fallback = config["enforceKeyFallback"]
+        self.paints = config["paints"]
         self.pricelist = pricelist
         self.event_loop = new_event_loop()
         if not self.enforce_key_fallback == True: # We are allowed to natively price the key, pricelist won't price key for us
@@ -143,19 +144,23 @@ class Pricer:
         # Sort from lowest to high and highest to low
         buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
         sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
-        # Remove blocked attributes by their defindex
-        for listing in buy_listings:
-            if "attributes" in listing["item"]:
-                for attribute in listing["item"]["attributes"]:
-                    for blocked_attribute in self.blocked_attributes:
-                        if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
-                            buy_listings.remove(listing)
-        for listing in sell_listings:
-            if "attributes" in listing["item"]:
-                for attribute in listing["item"]["attributes"]:
-                    for blocked_attribute in self.blocked_attributes:
-                        if str(attribute["defindex"]) == str(self.blocked_attributes[blocked_attribute]):
-                            sell_listings.remove(listing)
+        # Remove blocked attributes by their defindex (if they aren't a paint)
+        if not sku["name"] in self.paints:
+            bad_listings = []
+            for listing in buy_listings:
+                if "attributes" in listing["item"]:
+                    for attribute in listing["item"]["attributes"]:
+                        for blocked_attribute in self.blocked_attributes:
+                            if str(attribute["defindex"]) == str(blocked_attribute["defindex"]):
+                                bad_listings.append(listing)
+            for listing in sell_listings:
+                if "attributes" in listing["item"]:
+                    for attribute in listing["item"]["attributes"]:
+                        for blocked_attribute in self.blocked_attributes:
+                            if str(attribute["defindex"]) == str(blocked_attribute["defindex"]):
+                                bad_listings.append(listing)
+            buy_listings = [listing for listing in buy_listings if listing not in bad_listings]
+            sell_listings = [listing for listing in sell_listings if listing not in bad_listings]
         # Make sure we have enough listings to do some math
         if len(buy_listings) == 0:
             raise Exception("No buy listings were found.")

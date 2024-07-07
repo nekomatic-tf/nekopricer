@@ -98,7 +98,41 @@
         "headless horse",
         "pumpkin bombs"
     ],
-    "blockedAttributes": {
-        "painted_items": 142
-    }
+    "blockedAttributes": [
+        {
+            "name": "Painted Items",
+            "defindex": 142
+        }
+    ],
+    "paints": [
+        "A Color Similar to Slate",
+        "Indubitably Green",
+        "A Deep Commitment to Purple",
+        "Mann Co. Orange",
+        "A Distinctive Lack of Hue",
+        "Muskelmannbraun",
+        "A Mann's Mint",
+        "Noble Hatter's Violet",
+        "After Eight",
+        "Peculiarly Drab Tincture",
+        "Aged Moustache Grey",
+        "Pink as Hell",
+        "An Extraordinary Abundance of Tinge",
+        "Radigan Conagher Brown",
+        "Australium Gold",
+        "The Bitter Taste of Defeat and Lime",
+        "Color No. 216-190-216",
+        "The Color of a Gentlemann's Business Pants",
+        "Dark Salmon Injustice",
+        "Ye Olde Rustic Colour",
+        "Drably Olive",
+        "Zepheniah's Greed",
+        "An Air of Debonair",
+        "Team Spirit",
+        "Balaclavas Are Forever",
+        "The Value of Teamwork",
+        "Cream Spirit",
+        "Waterlogged Lab Coat",
+        "Operator's Overalls"
+    ]
 }

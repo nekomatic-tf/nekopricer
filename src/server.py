@@ -50,7 +50,6 @@ def get_item(sku: str):
             logger.info(f"Refreshed price for {price["name"]}/{price["sku"]}.")
             return price
         logger.error(f"Failed to find a price for {name}/{sku}.")
-        raise Exception("HAHA")
         return Response(status=404) # Failed to functionally price the item, so return an error 404
     except Exception as e:
         logger.error(f"Failed to add {sku}: {e}") # Server error (duh)
