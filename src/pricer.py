@@ -35,6 +35,8 @@ class Pricer:
         self.sell_limit = config["pricingTolerances"]["sellLimit"]
         self.buy_limit_strict = config["pricingTolerances"]["buyLimitStrict"]
         self.sell_limit_strict = config["pricingTolerances"]["sellLimitStrict"]
+        self.buy_human_fallback = config["pricingTolerances"]["buyHumanFallback"]
+        self.sell_human_fallback = config["pricingTolerances"]["sellHumanFallback"]
         self.enforce_key_fallback = config["enforceKeyFallback"]
         self.paints = config["paints"]
         self.pricelist = pricelist
@@ -132,9 +134,19 @@ class Pricer:
         # Filter out excluded steam ids
         buy_listings = [listing for listing in buy_listings if listing["steamid"] not in self.excluded_steam_ids]
         sell_listings = [listing for listing in sell_listings if listing["steamid"] not in self.excluded_steam_ids]
-        if self.only_use_bots == True: # Filter out listings without a user agent
-            buy_listings = [listing for listing in buy_listings if listing["user_agent"] is not None]
-            sell_listings = [listing for listing in sell_listings if listing["user_agent"] is not None]
+        if self.only_use_bots == True: # Filter out listings without a user agent    
+            buy_listings_filtered = [listing for listing in buy_listings if listing["user_agent"] is not None]
+            sell_listings_filtered = [listing for listing in sell_listings if listing["user_agent"] is not None]
+            if self.buy_human_fallback == True:
+                if not len(buy_listings_filtered) == 0:
+                    buy_listings = buy_listings_filtered
+            else:
+                buy_listings = buy_listings_filtered
+            if self.sell_human_fallback == True:
+                if not len(sell_listings_filtered) == 0:
+                    sell_listings = sell_listings_filtered
+            else:
+                sell_listings = sell_listings_filtered
         # Filter out excluded listing descriptions
         buy_listings = [listing for listing in buy_listings if all(excluded not in listing["details"] for excluded in self.excluded_listing_descriptions)]
         sell_listings = [listing for listing in sell_listings if all(excluded not in listing["details"] for excluded in self.excluded_listing_descriptions)]

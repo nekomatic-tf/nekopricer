@@ -42,7 +42,9 @@
         "buyLimit": 3,
         "sellLimit": 3,
         "buyLimitStrict": true,
-        "sellLimitStrict": true
+        "sellLimitStrict": true,
+        "buyHumanFallback": false,
+        "sellHumanFallback": false
     },
     "enforceKeyFallback": true,
     "excludedSteamIDs": [
