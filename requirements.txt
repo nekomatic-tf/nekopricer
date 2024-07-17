@@ -7,3 +7,4 @@ pathlib
 minio
 flask-socketio
 requests
+websockets

@@ -11,7 +11,7 @@ from src.pricelist import Pricelist
 from os import kill, getpid
 from asyncio import run
 from src.server import init, socket
-from signal import signal, SIGINT, SIGABRT, SIGBREAK
+from signal import signal, SIGINT, SIGABRT
 
 logging.basicConfig(
     handlers=[
@@ -72,4 +72,3 @@ def shutdown():
     kill(getpid(), SIGABRT)
 
 signal(SIGINT, shutdown())
-signal(SIGBREAK, shutdown())
