@@ -1,4 +1,3 @@
-logging
 pymongo
 motor
 asyncio
