@@ -11,7 +11,7 @@ from src.pricelist import Pricelist
 from os import kill, getpid
 from asyncio import run
 from src.server import init, socket
-from signal import signal, SIGINT, SIGABRT
+from signal import signal, SIGINT, SIGABRT, SIGTERM
 
 logging.basicConfig(
     handlers=[
@@ -56,14 +56,7 @@ websocket_thread.start()
 
 #pricer.price_items()
 
-init(
-    _config=config,
-    _pricelist=pricelist,
-    _pricer=pricer,
-    _backpacktf=backpacktf
-)
-
-def shutdown():
+def shutdown(sig, frame):
     logger.warning("Shutting down...")
     logger.info("Shutting database down...")
     run(backpacktf.close_connection())
@@ -71,4 +64,12 @@ def shutdown():
     print("Goodbye :(")
     kill(getpid(), SIGABRT)
 
-signal(SIGINT, shutdown())
+signal(SIGINT, shutdown)
+signal(SIGTERM, shutdown)
+
+init(
+    _config=config,
+    _pricelist=pricelist,
+    _pricer=pricer,
+    _backpacktf=backpacktf
+)
