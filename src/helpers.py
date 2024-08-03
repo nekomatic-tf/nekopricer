@@ -25,3 +25,12 @@ def set_interval_and_wait(func, sec):
 
 def compare_prices(item_1, item_2):
     return item_1["keys"] == item_2["keys"] and item_1["metal"] == item_2["metal"]
+
+# Thanks ChatGPT
+class PricerException(Exception):
+    def __init__(self, data):
+        super().__init__(data["reason"])  # Initialize the base class with the message
+        self.data = data  # Store the dictionary in the instance
+
+    def get_data(self):
+        return self.data  # Provide a method to access the dictionary

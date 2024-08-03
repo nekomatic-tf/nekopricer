@@ -3,7 +3,7 @@
 import logging
 from src.database import ListingDBManager
 from asyncio import new_event_loop
-from src.helpers import set_interval_and_wait, set_interval
+from src.helpers import set_interval_and_wait, set_interval, PricerException
 from src.pricelist import Pricelist
 from math import floor
 from time import time
@@ -76,11 +76,11 @@ class Pricer:
                     self.statistics["remaining"] -= 1
                     self.statistics["custom"] += 1
                     self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
-                except Exception as e:
+                except PricerException as e:
                     self.logger.error(f"Failed to price item {sku["name"]}/{sku["sku"]} using pricer: {e}")
                     try:
                         price = self.pricelist.get_external_price(sku)
-                        price["fallbackreason"] = str(e)
+                        price["fallback"] = e.get_data()
                         self.pricelist.update_price(price)
                         self.statistics["remaining"] -= 1
                         self.statistics["pricestf"] += 1
@@ -112,10 +112,11 @@ class Pricer:
                 self.pricelist.update_price(price)
                 self.pricelist.emit_price(price)
                 self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
-            except Exception as e:
+            except PricerException as e:
                 self.logger.error(f"Failed to price item {sku["name"]}/{sku["sku"]} using pricer: {e}")
                 try:
                     price = self.pricelist.get_external_price(sku)
+                    price["fallback"] = e.get_data()
                     self.pricelist.update_price(price)
                     self.pricelist.emit_price(price)
                     self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using fallback.")
@@ -179,9 +180,13 @@ class Pricer:
             sell_listings = [listing for listing in sell_listings if listing not in bad_listings]
         # Make sure we have enough listings to do some math
         if len(buy_listings) == 0:
-            raise Exception("No buy listings were found.")
+            raise PricerException({
+                "reason": "No buy listings were found."
+            })
         if len(sell_listings) == 0:
-            raise Exception("No sell listings were found.")
+            raise PricerException({
+                "reason": "No sell listings were found."
+            })
         # Also filter outliers (SOON)
         key_buy_price = self.pricelist.key_price["buy"]
         key_sell_price = self.pricelist.key_price["sell"]
@@ -201,7 +206,9 @@ class Pricer:
         limit_strict: False - Pricer can price using less than the desired amount of listings
         '''
         if len(buy_listings) < self.buy_limit and self.buy_limit_strict == True:
-            raise Exception("Not enough buy listings to calculate from.")
+            raise PricerException({
+                "reason": "Not enough buy listings to calculate from."
+            })
         else:
             denominator = 0
             for index, listing in enumerate(buy_listings):
@@ -214,7 +221,9 @@ class Pricer:
                     buy_price["metal"] += listing["currencies"]["metal"]
             buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / denominator)
         if len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
-            raise Exception("Not enough sell listings to calculate from.")
+            raise PricerException({
+                "reason": "Not enough sell listings to calculate from."
+            })
         else:
             denominator = 0
             for index, listing in enumerate(sell_listings):
@@ -227,21 +236,33 @@ class Pricer:
                     sell_price["metal"] += listing["currencies"]["metal"]
             sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / denominator)
         if buy_metal > sell_metal:
-            raise Exception("Buy price is higher than the sell price.")
+            raise PricerException({
+                "reason": "Buy price is higher than the sell price."
+            })
         if buy_metal == sell_metal: # Just going to raise an exception for now
-            raise Exception("Buy price is the same as the sell price.")
+            raise PricerException({
+                "reason": "Buy price is the same as the sell price."
+            })
         if buy_metal == 0:
-            raise Exception("Buy price cannot be zero.")
+            raise PricerException({
+                "reason": "Buy price cannot be zero."
+            })
         if sell_metal == 0:
-            raise Exception("Sell price cannot be zero.")
+            raise PricerException({
+                "reason": "Sell price cannot be zero."
+            })
         fallback_buy_metal = self.to_metal(external_price["buy"], key_buy_price)
         fallback_sell_metal = self.to_metal(external_price["sell"], key_sell_price)
         buy_difference = self.calculate_percentage_difference(fallback_buy_metal, buy_metal)
         sell_difference = self.calculate_percentage_difference(fallback_sell_metal, sell_metal)
         if buy_difference > self.max_percentage_differences["buy"]:
-            raise Exception("Pricer is buying for too much.")
+            raise PricerException({
+                "reason": "Pricer is buying for too much."
+            })
         if sell_difference < self.max_percentage_differences["sell"]:
-            raise Exception("Pricer is selling for too little.")
+            raise PricerException({
+                "reason": "Pricer is selling for too little."
+            })
         # We did it, yay
         return {
             "name": sku["name"],
