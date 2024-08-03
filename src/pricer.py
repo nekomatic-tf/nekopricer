@@ -41,6 +41,13 @@ class Pricer:
         self.paints = config["paints"]
         self.pricelist = pricelist
         self.event_loop = new_event_loop()
+        self.statistics = {
+            "total": 0,
+            "remaining": 0,
+            "custom": 0,
+            "pricestf": 0,
+            "failed": 0
+        }
         if not self.enforce_key_fallback == True: # We are allowed to natively price the key, pricelist won't price key for us
             self.logger.info("Key will be priced using the pricer.")
             set_interval(self.get_key_price, config["intervals"]["key"])
@@ -49,46 +56,43 @@ class Pricer:
 
     def price_items(self):
         # Get all the SKUs
-        total = 0
-        remaining = 0
-        custom = 0
-        pricestf = 0
-        failed = 0
+        self.statistics = {key: 0 for key in self.statistics} # Clear all statistics
         try:
             items = []
             for item in self.pricelist.item_list["items"]:
                 items.append(item["name"])
             skus = self.pricelist.to_sku_bulk(items)
-            total = len(skus)
-            remaining = total
+            self.statistics["total"] = len(skus)
+            self.statistics["remaining"] = self.statistics["total"]
             skus = [{"sku": sku, "name": name} for sku, name in zip(skus, items)] # Produce a reasonable format iterate
             for sku in skus:
                 try:
                     if sku["sku"] == "5021;6":     
-                        remaining -= 1
-                        pricestf += 1
+                        self.statistics["remaining"] -= 1
+                        self.statistics["pricestf"] += 1
                         continue # We don't price the key
                     price = self.calculate_price(sku) # Attempt to price this specific item (will throw an exception if it fails)
                     self.pricelist.update_price(price)
-                    remaining -= 1
-                    custom += 1
+                    self.statistics["remaining"] -= 1
+                    self.statistics["custom"] += 1
                     self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
                 except Exception as e:
                     self.logger.error(f"Failed to price item {sku["name"]}/{sku["sku"]} using pricer: {e}")
                     try:
                         price = self.pricelist.get_external_price(sku)
+                        price["fallbackreason"] = str(e)
                         self.pricelist.update_price(price)
-                        remaining -= 1
-                        pricestf += 1
+                        self.statistics["remaining"] -= 1
+                        self.statistics["pricestf"] += 1
                         self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using fallback.")
                     except Exception as e:
                         self.logger.error(f"Failed to price {sku["name"]}/{sku["sku"]} using fallback: {e}")
                         print("!! THIS IS VERY BAD CHECK CODE !!")
-                        failed += 1
-                        remaining -= 1
-                self.logger.info(f"\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
+                        self.statistics["failed"] += 1
+                        self.statistics["remaining"] -= 1
+                self.logger.info(f"\nTotal:     {self.statistics["total"]}\nRemaining: {self.statistics["remaining"]}\nCustom:    {self.statistics["custom"]}\nPrices.TF: {self.statistics["pricestf"]}\nFailed:    {self.statistics["failed"]}")
             self.pricelist.emit_prices()
-            self.logger.info(f"\nDONE\nTotal:     {total}\nRemaining: {remaining}\nCustom:    {custom}\nPrices.TF: {pricestf}\nFailed:    {failed}")
+            self.logger.info(f"\nDONE\nTotal:     {self.statistics["total"]}\nRemaining: {self.statistics["remaining"]}\nCustom:    {self.statistics["custom"]}\nPrices.TF: {self.statistics["pricestf"]}\nFailed:    {self.statistics["failed"]}")
             self.logger.info(f"Sleeping for {self.price_interval} seconds (If this is the interval loop).")
         except Exception as e:
             self.logger.error(e)

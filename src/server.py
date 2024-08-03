@@ -55,6 +55,22 @@ def get_item(sku: str):
         logger.error(f"Failed to add {sku}: {e}") # Server error (duh)
         return Response(status=500)
 
+@app.get("/health")
+def get_health():
+    custom_prices = sum(1 for item in pricelist.pricelist["items"] if item["source"] == "nekopricer")
+    fallback_prices = sum(1 for item in pricelist.pricelist["items"] if item["source"] != "nekopricer")
+    return {
+        "item_list": {
+            "total": len(pricelist.item_list["items"])
+        },
+        "pricelist": {
+            "total": len(pricelist.pricelist["items"]),
+            "custom": custom_prices,
+            "fallback": fallback_prices
+        },
+        "pricer": pricer.statistics
+    }
+
 def init(
         _config: dict,
         _pricelist: Pricelist,
