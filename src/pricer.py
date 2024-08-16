@@ -159,8 +159,8 @@ class Pricer:
         buy_listings = [listing for listing in buy_listings if "usd" not in listing["currencies"]]
         sell_listings = [listing for listing in sell_listings if "usd" not in listing["currencies"]]
         # Sort from lowest to high and highest to low
-        buy_listings = sorted(buy_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
-        sell_listings = sorted(sell_listings, key=lambda x: self.to_metal(x["currencies"], self.pricelist.key_price["sell"]))
+        buy_listings = sorted(buy_listings, key=lambda x: self.to_halfscrap(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
+        sell_listings = sorted(sell_listings, key=lambda x: self.to_halfscrap(x["currencies"], self.pricelist.key_price["sell"]))
         # Remove blocked attributes by their defindex (if they aren't a paint)
         if not sku["name"] in self.paints:
             bad_listings = []
@@ -192,8 +192,8 @@ class Pricer:
         key_sell_price = self.pricelist.key_price["sell"]
         buy_price = { "keys": 0, "metal": 0 }
         sell_price = { "keys": 0, "metal": 0 }
-        buy_metal = 0
-        sell_metal = 0
+        buy_halfscrap = 0
+        sell_halfscrap = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
         '''
         Nekopricer Documentation / rant
@@ -219,7 +219,7 @@ class Pricer:
                     buy_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
-            buy_metal = self.get_right(self.to_metal(buy_price, key_buy_price) / denominator)
+            buy_halfscrap = round(self.to_halfscrap(buy_price, key_buy_price) / denominator)
         if len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
             raise PricerException({
                 "reason": "Not enough sell listings to calculate from."
@@ -234,27 +234,27 @@ class Pricer:
                     sell_price["keys"] += listing["currencies"]["keys"]
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
-            sell_metal = self.get_right(self.to_metal(sell_price, key_sell_price) / denominator)
-        if buy_metal > sell_metal:
+            sell_halfscrap = round(self.to_halfscrap(sell_price, key_sell_price) / denominator)
+        if buy_halfscrap > sell_halfscrap:
             raise PricerException({
                 "reason": "Buy price is higher than the sell price."
             })
-        if buy_metal == sell_metal: # Just going to raise an exception for now
+        if buy_halfscrap == sell_halfscrap: # Just going to raise an exception for now
             raise PricerException({
                 "reason": "Buy price is the same as the sell price."
             })
-        if buy_metal == 0:
+        if buy_halfscrap == 0:
             raise PricerException({
                 "reason": "Buy price cannot be zero."
             })
-        if sell_metal == 0:
+        if sell_halfscrap == 0:
             raise PricerException({
                 "reason": "Sell price cannot be zero."
             })
-        fallback_buy_metal = self.to_metal(external_price["buy"], key_buy_price)
-        fallback_sell_metal = self.to_metal(external_price["sell"], key_sell_price)
-        buy_difference = self.calculate_percentage_difference(fallback_buy_metal, buy_metal)
-        sell_difference = self.calculate_percentage_difference(fallback_sell_metal, sell_metal)
+        fallback_buy_halfscrap = self.to_halfscrap(external_price["buy"], key_buy_price)
+        fallback_sell_halfscrap = self.to_halfscrap(external_price["sell"], key_sell_price)
+        buy_difference = self.calculate_percentage_difference(fallback_buy_halfscrap, buy_halfscrap)
+        sell_difference = self.calculate_percentage_difference(fallback_sell_halfscrap, sell_halfscrap)
         if buy_difference > self.max_percentage_differences["buy"]:
             raise PricerException({
                 "reason": "Pricer is buying for too much."
@@ -263,18 +263,27 @@ class Pricer:
             raise PricerException({
                 "reason": "Pricer is selling for too little."
             })
+        currencies = {
+            "buy": self.to_currencies(buy_halfscrap, key_buy_price),
+            "sell": self.to_currencies(sell_halfscrap, key_sell_price)
+        }
+        if (currencies["buy"] == currencies["sell"]):
+            raise PricerException({
+                "reason": "Buy price is the same as the sell price after conversion."
+            })
         # We did it, yay
         return {
             "name": sku["name"],
             "sku": sku["sku"],
             "source": "nekopricer",
             "time": int(time()),
-            "buy": self.to_currencies(buy_metal, key_buy_price),
-            "sell": self.to_currencies(sell_metal, key_sell_price)
+            "buy": currencies["buy"],
+            "sell": currencies["sell"]
         }
     
     # Helper functions
     def format_key(self, price: dict): # Convert the key to pure metal (Only during native pricing)
+        ## ALERT ALERT LEGACY CODE DO NOT TOUCH ##
         price["buy"]["metal"] = self.to_metal(price["buy"], self.pricelist.key_price["buy"])
         price["sell"]["metal"] = self.to_metal(price["sell"], self.pricelist.key_price["sell"])
         price["buy"]["keys"] = 0
@@ -289,12 +298,28 @@ class Pricer:
         metal += currencies.get("keys", 0) * key_price["metal"]
         metal += currencies.get("metal", 0)
         return self.get_right(metal)
-    def to_currencies(self, metal: int, key_price: dict):
+    def to_halfscrap(self, currencies: dict, key_price: dict): # Convert to our beloved halfscrap
+        halfscrap = 0
+        halfscrap += currencies.get("keys", 0) * round(key_price["metal"] * 18)
+        halfscrap += round(currencies.get("metal", 0) * 18)
+        return halfscrap
+    # Legacy Code (DO NOT TOUCH)
+    """def to_currencies(self, metal: int, key_price: dict):
         currencies = {}
         keys = metal // key_price["metal"]
         metal -= keys * key_price["metal"]
         currencies["keys"] = keys
         currencies["metal"] = self.get_right(metal)
+        return currencies"""
+    
+    def to_currencies(self, halfscrap: int, key_price: dict):
+        currencies = {}
+        currencies["keys"] = round(halfscrap // round(key_price["metal"] * 18))
+        # Keeping this for my sanity
+        #halfscrap -= currencies["keys"] * round(key_price["metal"] * 18)
+        currencies["metal"] = float(f"{(halfscrap - currencies['keys'] * round(key_price['metal'] * 18)) / 18:.2f}")
+        # Run a get right so it doesn't cut by 0.05 that is NOT something we want
+        currencies["metal"] = self.get_right(currencies["metal"])
         return currencies
     def get_right(self, v):
         i = floor(v)
