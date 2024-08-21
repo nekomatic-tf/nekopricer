@@ -12,6 +12,7 @@ from os import kill, getpid
 from asyncio import run
 from src.server import init, socket
 from signal import signal, SIGINT, SIGABRT, SIGTERM
+from src.storage import S3Engine
 
 logging.basicConfig(
     handlers=[
@@ -33,9 +34,13 @@ mongo_config = config["mongo"]
 interval_config = config["intervals"]
 
 logger.debug("Initializing classes...")
+
+s3engine = S3Engine(config["minio"])
+
 pricelist = Pricelist(
     config,
-    socket
+    socket,
+    s3engine
 )
 pricer = Pricer(
     config,
@@ -71,5 +76,6 @@ init(
     _config=config,
     _pricelist=pricelist,
     _pricer=pricer,
-    _backpacktf=backpacktf
+    _backpacktf=backpacktf,
+    _s3engine=s3engine
 )

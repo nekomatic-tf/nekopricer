@@ -16,10 +16,11 @@ class Pricelist:
     def __init__(
             self,
             config: dict,
-            socket_io: SocketIO
+            socket_io: SocketIO,
+            storage_engine: S3Engine
     ):
         self.logger.info("Initializing S3...")
-        self.storage_engine = S3Engine(config["minio"])
+        self.storage_engine = storage_engine
         self.item_list = {"items": []}
         self.pricelist = {"items": []}
         self.external_pricelist = dict()

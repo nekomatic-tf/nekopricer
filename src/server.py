@@ -2,6 +2,7 @@ from flask import Flask, Response
 from flask_socketio import SocketIO
 from src.pricelist import Pricelist
 from src.pricer import Pricer
+from src.storage import S3Engine
 from.backpacktf import BackpackTF
 import logging
 from asyncio import new_event_loop
@@ -75,15 +76,18 @@ def init(
         _config: dict,
         _pricelist: Pricelist,
         _pricer: Pricer,
-        _backpacktf: BackpackTF
+        _backpacktf: BackpackTF,
+        _s3engine: S3Engine
 ):
     logger.info("Initializing API server...")
     global pricelist
     global pricer
     global backpacktf
+    global s3engine
     pricelist = _pricelist
     pricer = _pricer
     backpacktf = _backpacktf
+    s3engine = _s3engine
     app.run(
         _config["host"],
         _config["port"]
