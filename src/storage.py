@@ -31,13 +31,9 @@ class S3Engine:
         self.logger.debug("Wrote " + file)
 
     def read_file(self, file: str):
-        try:
-            content = self.client.get_object(
-                bucket_name=self.bucket,
-                object_name=file
-            )
-            self.logger.debug("Read " + file)
-            return content.data.decode(encoding="utf-8")
-        except Exception as e:
-            self.logger.error("Error reading " + file + ": " + str(e))
-            return e
+        content = self.client.get_object(
+            bucket_name=self.bucket,
+            object_name=file
+        )
+        self.logger.debug("Read " + file)
+        return content.data.decode(encoding="utf-8")

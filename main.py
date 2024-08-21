@@ -10,7 +10,7 @@ from src.pricer import Pricer
 from src.pricelist import Pricelist
 from os import kill, getpid
 from asyncio import run
-from src.server import init, socket
+from src.server.server import init, socket
 from signal import signal, SIGINT, SIGABRT, SIGTERM
 from src.storage import S3Engine
 
