@@ -29,8 +29,10 @@ class Pricer:
         self.blocked_attributes = config["blockedAttributes"]
         self.schema_server_url = config["pricesTf"]["schemaServer"]
         self.only_use_bots = config["pricingTolerances"]["onlyBots"]
-        self.undercut = config["pricingTolerances"]["undercut"]
-        self.overcut = config["pricingTolerances"]["overcut"]
+        self.allow_cutting = config["pricingTolerances"]["allowCutting"]
+        self.allow_matching = config["pricingTolerances"]["allowMatching"]
+        self.allow_rounding = config["pricingTolerances"]["allowRounding"]
+        self.allow_backing = config["pricingTolerances"]["allowBacking"]
         self.buy_limit = config["pricingTolerances"]["buyLimit"]
         self.sell_limit = config["pricingTolerances"]["sellLimit"]
         self.buy_limit_strict = config["pricingTolerances"]["buyLimitStrict"]
@@ -38,6 +40,7 @@ class Pricer:
         self.buy_human_fallback = config["pricingTolerances"]["buyHumanFallback"]
         self.sell_human_fallback = config["pricingTolerances"]["sellHumanFallback"]
         self.partial_fallback = config["pricingTolerances"]["partialFallback"]
+        self.allow_conversion_fix = config["pricingTolerances"]["allowConversionFix"]
         self.enforce_key_fallback = config["enforceKeyFallback"]
         self.paints = config["paints"]
         self.pricelist = pricelist
@@ -191,8 +194,7 @@ class Pricer:
         # Also filter outliers (SOON)
         key_buy_price = self.pricelist.key_price["buy"]
         key_sell_price = self.pricelist.key_price["sell"]
-        buy_price = { "keys": 0, "metal": 0 }
-        sell_price = { "keys": 0, "metal": 0 }
+
         buy_halfscrap = 0
         sell_halfscrap = 0
         external_price = self.pricelist.get_external_price(sku) # Get the external price
@@ -206,11 +208,63 @@ class Pricer:
         limit_strict: True - Pricer needs to the desired amount of listings to price
         limit_strict: False - Pricer can price using less than the desired amount of listings
         '''
+        # Make sure we have enough listings (unless strict is disabled)
         if len(buy_listings) < self.buy_limit and self.buy_limit_strict == True:
             raise PricerException({
                 "reason": "Not enough buy listings to calculate from."
             })
-        else:
+        elif len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
+            raise PricerException({
+                "reason": "Not enough sell listings to calculate from."
+            })
+        # Begin operations
+        # This is a NetBurst CPU pipeline please be patient
+        strategy = {
+            "type": "cut",
+            "valid": False
+        }
+        # Restrictive cutting
+        if self.allow_cutting and not strategy["valid"]:
+            cut_buy = all(x["currencies"] == buy_listings[0]["currencies"] for x in buy_listings[:self.buy_limit])
+            cut_sell = all(x["currencies"] == sell_listings[0]["currencies"] for x in sell_listings[:self.sell_limit])
+            if cut_buy and cut_sell:
+                buy_halfscrap = self.to_halfscrap(buy_listings[0]["currencies"], key_buy_price)
+                sell_halfscrap = self.to_halfscrap(sell_listings[0]["currencies"], key_sell_price)
+                if sell_halfscrap - buy_halfscrap > 4:
+                    buy_halfscrap += 2
+                    sell_halfscrap -= 2
+                    strategy["valid"] = True
+                else:
+                    strategy["type"] = "cut_non_strict"
+            else:
+                strategy["type"] = "cut_non_strict"
+        # Non-restrictive cutting
+        if self.allow_cutting and not strategy["valid"]:
+            if not self.buy_limit_strict and not self.sell_limit_strict:
+                buy_halfscrap = self.to_halfscrap(buy_listings[0]["currencies"], key_buy_price)
+                sell_halfscrap = self.to_halfscrap(sell_listings[0]["currencies"], key_sell_price)
+                if sell_halfscrap - buy_halfscrap > 4:
+                    buy_halfscrap += 2
+                    sell_halfscrap -= 2
+                    strategy["valid"] = True
+                else:
+                    strategy["type"] = "match"
+            else:
+                strategy["type"] = "match"
+        # Listing matching
+        if self.allow_matching and not strategy["valid"]:
+            buy_halfscrap = self.to_halfscrap(buy_listings[0]["currencies"], key_buy_price)
+            sell_halfscrap = self.to_halfscrap(sell_listings[0]["currencies"], key_sell_price)
+            if not buy_halfscrap == sell_halfscrap and not buy_halfscrap > sell_halfscrap:
+                buy_halfscrap = buy_halfscrap
+                sell_halfscrap = sell_halfscrap
+                strategy["valid"] = True
+            else:
+                strategy["type"] = "round"
+        # Listing rounding
+        if self.allow_rounding and not strategy["valid"]:
+            buy_price = { "keys": 0, "metal": 0 }
+            sell_price = { "keys": 0, "metal": 0 }
             denominator = 0
             for index, listing in enumerate(buy_listings):
                 if index == self.buy_limit:
@@ -221,11 +275,6 @@ class Pricer:
                 if "metal" in listing["currencies"]:
                     buy_price["metal"] += listing["currencies"]["metal"]
             buy_halfscrap = round(self.to_halfscrap(buy_price, key_buy_price) / denominator)
-        if len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
-            raise PricerException({
-                "reason": "Not enough sell listings to calculate from."
-            })
-        else:
             denominator = 0
             for index, listing in enumerate(sell_listings):
                 if index == self.sell_limit:
@@ -236,6 +285,25 @@ class Pricer:
                 if "metal" in listing["currencies"]:
                     sell_price["metal"] += listing["currencies"]["metal"]
             sell_halfscrap = round(self.to_halfscrap(sell_price, key_sell_price) / denominator)
+            if not buy_halfscrap == sell_halfscrap and not buy_halfscrap > sell_halfscrap:
+                buy_halfscrap = buy_halfscrap
+                sell_halfscrap = sell_halfscrap
+                strategy["valid"] = True
+            else:
+                strategy["type"] = "backing_off"
+        # Backing off
+        if self.allow_backing and not strategy["valid"]:
+            if not self.buy_limit_strict and not self.sell_limit_strict:
+                buy_halfscrap = sell_halfscrap - 2
+                strategy["valid"] = True
+            else:
+                strategy["type"] = "fallback"
+        # Duh
+        if not strategy["valid"]:
+            self.logger.debug("NetBurst pipeline completed with a failure to validate any method of pricing.")
+            self.logger.warn(f"Failed to validate a strategy to price {sku["name"]}/{sku["sku"]}.")
+        
+        # Final checks
         if buy_halfscrap > sell_halfscrap:
             raise PricerException({
                 "reason": "Buy price is higher than the sell price."
@@ -268,10 +336,25 @@ class Pricer:
             "buy": self.to_currencies(buy_halfscrap, key_buy_price),
             "sell": self.to_currencies(sell_halfscrap, key_sell_price)
         }
-        if (currencies["buy"] == currencies["sell"]):
-            raise PricerException({
-                "reason": "Buy price is the same as the sell price after conversion."
-            })
+        if currencies["buy"] == currencies["sell"]: # Migitate this issue by just tweaking the halfscraps a little
+            if self.allow_conversion_fix:
+                buy_halfscrap -= 1
+                sell_halfscrap += 1
+                currencies = {
+                    "buy": self.to_currencies(buy_halfscrap, key_buy_price),
+                    "sell": self.to_currencies(sell_halfscrap, key_sell_price),
+                }
+                if currencies["buy"] == currencies["sell"]: # Attempt 2
+                    buy_halfscrap -= 1
+                    sell_halfscrap += 1
+                    currencies = {
+                        "buy": self.to_currencies(buy_halfscrap, key_buy_price),
+                        "sell": self.to_currencies(sell_halfscrap, key_sell_price),
+                    }
+            else:
+                raise PricerException({
+                    "reason": "Buy price is the same as the sell price after conversion."
+                })
         # We did it, yay
         return {
             "name": sku["name"],
@@ -279,7 +362,8 @@ class Pricer:
             "source": "nekopricer",
             "time": int(time()),
             "buy": currencies["buy"],
-            "sell": currencies["sell"]
+            "sell": currencies["sell"],
+            "strategy": strategy
         }
     
     # Helper functions
@@ -304,19 +388,10 @@ class Pricer:
         halfscrap += currencies.get("keys", 0) * round(key_price["metal"] * 18)
         halfscrap += round(currencies.get("metal", 0) * 18)
         return halfscrap
-    # Legacy Code (DO NOT TOUCH)
-    """def to_currencies(self, metal: int, key_price: dict):
-        currencies = {}
-        keys = metal // key_price["metal"]
-        metal -= keys * key_price["metal"]
-        currencies["keys"] = keys
-        currencies["metal"] = self.get_right(metal)
-        return currencies"""
-    
     def to_currencies(self, halfscrap: int, key_price: dict):
         currencies = {}
         currencies["keys"] = round(halfscrap // round(key_price["metal"] * 18))
-        # Keeping this for my sanity
+        # Remove the round and you have the ability to determine if a get_right will be accurate or not
         #halfscrap -= currencies["keys"] * round(key_price["metal"] * 18)
         currencies["metal"] = float(f"{(halfscrap - currencies['keys'] * round(key_price['metal'] * 18)) / 18:.2f}")
         # Run a get right so it doesn't cut by 0.05 that is NOT something we want

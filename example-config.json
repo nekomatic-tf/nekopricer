@@ -1,4 +1,5 @@
 {
+    "masterKey": "",
     "backpackTf": {
         "apiKey": "",
         "accessToken": "",
@@ -37,14 +38,18 @@
     },
     "pricingTolerances": {
         "onlyBots": true,
-        "undercut": 0.11,
-        "overcut": 0.11,
+        "allowCutting": false,
+        "allowMatching": false,
+        "allowRounding": true,
+        "allowBacking": false,
         "buyLimit": 3,
         "sellLimit": 3,
         "buyLimitStrict": true,
         "sellLimitStrict": true,
         "buyHumanFallback": false,
-        "sellHumanFallback": false
+        "sellHumanFallback": false,
+        "partialFallback": false,
+        "allowConversionFix": false
     },
     "enforceKeyFallback": true,
     "excludedSteamIDs": [
@@ -104,6 +109,54 @@
         {
             "name": "Painted Items",
             "defindex": 142
+        },
+        {
+            "name": "SPELL: set item tint RGB",
+            "defindex": 1004
+        },
+        {
+            "name": "SPELL: set Halloween footstep type",
+            "defindex": 1005
+        },
+        {
+            "name": "SPELL: Halloween voice modulation",
+            "defindex": 1006
+        },
+        {
+            "name": "SPELL: Halloween pumpkin explosions",
+            "defindex": 1007
+        },
+        {
+            "name": "SPELL: Halloween green flames",
+            "defindex": 1008
+        },
+        {
+            "name": "SPELL: Halloween death ghosts",
+            "defindex": 1009
+        },
+        {
+            "name": "Strange Part",
+            "defindex": 379
+        },
+        {
+            "name": "Strange Part",
+            "defindex": 380
+        },
+        {
+            "name": "Strange Part",
+            "defindex": 381
+        },
+        {
+            "name": "Strange Part",
+            "defindex": 382
+        },
+        {
+            "name": "Strange Part",
+            "defindex": 383
+        },
+        {
+            "name": "Strange Part",
+            "defindex": 384
         }
     ],
     "paints": [
@@ -135,6 +188,35 @@
         "The Value of Teamwork",
         "Cream Spirit",
         "Waterlogged Lab Coat",
-        "Operator's Overalls"
+        "Operator's Overalls",
+        "Non-Craftable A Color Similar to Slate",
+        "Non-Craftable Indubitably Green",
+        "Non-Craftable A Deep Commitment to Purple",
+        "Non-Craftable Mann Co. Orange",
+        "Non-Craftable A Distinctive Lack of Hue",
+        "Non-Craftable Muskelmannbraun",
+        "Non-Craftable A Mann's Mint",
+        "Non-Craftable Noble Hatter's Violet",
+        "Non-Craftable After Eight",
+        "Non-Craftable Peculiarly Drab Tincture",
+        "Non-Craftable Aged Moustache Grey",
+        "Non-Craftable Pink as Hell",
+        "Non-Craftable An Extraordinary Abundance of Tinge",
+        "Non-Craftable Radigan Conagher Brown",
+        "Non-Craftable Australium Gold",
+        "Non-Craftable The Bitter Taste of Defeat and Lime",
+        "Non-Craftable Color No. 216-190-216",
+        "Non-Craftable The Color of a Gentlemann's Business Pants",
+        "Non-Craftable Dark Salmon Injustice",
+        "Non-Craftable Ye Olde Rustic Colour",
+        "Non-Craftable Drably Olive",
+        "Non-Craftable Zepheniah's Greed",
+        "Non-Craftable An Air of Debonair",
+        "Non-Craftable Team Spirit",
+        "Non-Craftable Balaclavas Are Forever",
+        "Non-Craftable The Value of Teamwork",
+        "Non-Craftable Cream Spirit",
+        "Non-Craftable Waterlogged Lab Coat",
+        "Non-Craftable Operator's Overalls"
     ]
 }
