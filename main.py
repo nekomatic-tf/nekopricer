@@ -2,6 +2,7 @@
 print("Be gay, do crime.")
 
 import logging
+import colorlog
 import sys
 from json import load
 from src.backpacktf import BackpackTF
@@ -14,12 +15,16 @@ from src.server.server import init, socket
 from signal import signal, SIGINT, SIGABRT, SIGTERM
 from src.storage import S3Engine
 
+logging_console_handler = colorlog.StreamHandler()
+logging_console_handler.setFormatter(colorlog.ColoredFormatter("[ %(asctime)s ] [ %(log_color)s%(levelname)s%(reset)s ] [ %(name)s ]: %(message)s"))
+logging_file_handler = logging.FileHandler("app.log")
+logging_file_handler.setFormatter(logging.Formatter("[ %(asctime)s ] [ %(levelname)s ] [ %(name)s ]: %(message)s"))
+
 logging.basicConfig(
     handlers=[
-        logging.FileHandler('pricer.log'),
-        logging.StreamHandler(sys.stdout)
+        logging_console_handler,
+        logging_file_handler
     ],
-    format="%(asctime)s [%(levelname)s][%(name)s]: %(message)s",
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)

@@ -12,7 +12,7 @@ from time import sleep
 from urllib.parse import quote
 
 class Pricelist:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("Pricelist")
     def __init__(
             self,
             config: dict,

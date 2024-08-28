@@ -8,7 +8,7 @@ from time import time
 import logging
 
 class BackpackTF:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("Database")
     def __init__(self, mongo_uri: str,
                  database_name,
                  collection_name,

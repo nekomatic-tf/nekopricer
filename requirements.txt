@@ -8,3 +8,4 @@ minio
 flask-socketio
 requests
 websockets
+colorlog

@@ -9,7 +9,7 @@ from math import floor
 from time import time
 
 class Pricer:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("Pricer")
     def __init__(
             self,
             config: dict,

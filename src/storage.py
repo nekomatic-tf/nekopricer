@@ -5,7 +5,7 @@ import io
 from minio import Minio
 
 class S3Engine:
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("S3 Engine")
 
     def __init__(self, config: dict):
         self.bucket = config["bucket"]
