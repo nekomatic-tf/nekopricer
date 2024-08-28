@@ -3,16 +3,13 @@ print("Be gay, do crime.")
 
 import logging
 import colorlog
-import sys
 from json import load
 from src.backpacktf import BackpackTF
 from threading import Thread
 from src.pricer import Pricer
 from src.pricelist import Pricelist
-from os import kill, getpid
 from asyncio import run
 from src.server.server import init, socket
-from signal import signal, SIGINT, SIGABRT, SIGTERM
 from src.storage import S3Engine
 
 logging_console_handler = colorlog.StreamHandler()
@@ -62,20 +59,10 @@ backpacktf = BackpackTF(
 
 logger.debug("Starting websocket...")
 websocket_thread = Thread(target=backpacktf.start_websocket)
+websocket_thread.daemon = True
 websocket_thread.start()
 
 #pricer.price_items()
-
-def shutdown(sig, frame):
-    logger.warning("Shutting down...")
-    logger.info("Shutting database down...")
-    run(backpacktf.close_connection())
-    # "stop" server idk
-    print("Goodbye :(")
-    kill(getpid(), SIGABRT)
-
-signal(SIGINT, shutdown)
-signal(SIGTERM, shutdown)
 
 init(
     _config=config,
@@ -84,3 +71,9 @@ init(
     _backpacktf=backpacktf,
     _s3engine=s3engine
 )
+
+# Program shutdown
+logger.warning("Shutting down...")
+logger.debug("Shutting listing DB down...")
+run(backpacktf.close_connection())
+print("Goodbye :(")

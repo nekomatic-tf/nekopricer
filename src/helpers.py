@@ -5,6 +5,7 @@ def set_interval(func, sec):
         set_interval(func, sec)
         func()
     t = threading.Timer(sec, func_wrapper)
+    t.daemon = True
     t.start()
     return t
 
@@ -20,6 +21,7 @@ def set_interval_and_wait(func, sec):
             set_interval_and_wait(func, sec)
 
     t = threading.Timer(sec, func_wrapper)
+    t.daemon = True
     t.start()
     return t
 
