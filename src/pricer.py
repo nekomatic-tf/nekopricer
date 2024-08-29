@@ -233,6 +233,7 @@ class Pricer:
                 if sell_halfscrap - buy_halfscrap > 4:
                     buy_halfscrap += 2
                     sell_halfscrap -= 2
+                    strategy["type"] = "cut"
                     strategy["valid"] = True
                 else:
                     strategy["type"] = "cut_non_strict"
@@ -246,6 +247,7 @@ class Pricer:
                 if sell_halfscrap - buy_halfscrap > 4:
                     buy_halfscrap += 2
                     sell_halfscrap -= 2
+                    strategy["type"] = "cut_non_strict"
                     strategy["valid"] = True
                 else:
                     strategy["type"] = "match"
@@ -258,6 +260,7 @@ class Pricer:
             if not buy_halfscrap == sell_halfscrap and not buy_halfscrap > sell_halfscrap:
                 buy_halfscrap = buy_halfscrap
                 sell_halfscrap = sell_halfscrap
+                strategy["type"] = "match"
                 strategy["valid"] = True
             else:
                 strategy["type"] = "round"
@@ -288,6 +291,7 @@ class Pricer:
             if not buy_halfscrap == sell_halfscrap and not buy_halfscrap > sell_halfscrap:
                 buy_halfscrap = buy_halfscrap
                 sell_halfscrap = sell_halfscrap
+                strategy["type"] = "round"
                 strategy["valid"] = True
             else:
                 strategy["type"] = "backing_off"
@@ -295,6 +299,7 @@ class Pricer:
         if self.allow_backing and not strategy["valid"]:
             if not self.buy_limit_strict and not self.sell_limit_strict:
                 buy_halfscrap = sell_halfscrap - 2
+                strategy["type"] = "backing_off"
                 strategy["valid"] = True
             else:
                 strategy["type"] = "fallback"

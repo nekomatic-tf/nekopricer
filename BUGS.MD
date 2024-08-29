@@ -1,1 +1,1 @@
-# Large pricelists can cause a double execution of the pricer loop at startup (if its set to start)
+# Currency conversion when cutting can sometimes lead to issues with the buy price being slightly higher than the sell price
