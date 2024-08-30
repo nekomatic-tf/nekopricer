@@ -1,1 +1,2 @@
 # Currency conversion when cutting can sometimes lead to issues with the buy price being slightly higher than the sell price
+# remove_keys can sometimes cause a condition where the key buy price is higher than or equal to the sell price (rare though)

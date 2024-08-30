@@ -91,7 +91,6 @@ class Pricer:
                         self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using fallback.")
                     except Exception as e:
                         self.logger.error(f"Failed to price {sku["name"]}/{sku["sku"]} using fallback: {e}")
-                        print("!! THIS IS VERY BAD CHECK CODE !!")
                         self.statistics["failed"] += 1
                         self.statistics["remaining"] -= 1
                 self.logger.info(f"\nTotal:     {self.statistics["total"]}\nRemaining: {self.statistics["remaining"]}\nCustom:    {self.statistics["custom"]}\nPrices.TF: {self.statistics["pricestf"]}\nFailed:    {self.statistics["failed"]}")
@@ -110,9 +109,6 @@ class Pricer:
                 if sku["sku"] == "5021;6" and self.enforce_key_fallback == True: # Enforce fallback for the key if SKU is a key.
                     raise Exception("Key pricing is disabled.")
                 price = self.calculate_price(sku)
-                if sku["sku"] == "5021;6": # What the FUCK is this? (Answer: Key pricing code)
-                    price = self.format_key(price)
-                    self.pricelist.key_price = price
                 self.pricelist.update_price(price)
                 self.pricelist.emit_price(price)
                 self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using pricer.")
@@ -126,7 +122,6 @@ class Pricer:
                     self.logger.info(f"Priced item {sku["name"]}/{sku["sku"]} using fallback.")
                 except Exception as e:
                     self.logger.error(f"Failed to price {sku["name"]}/{sku["sku"]} using fallback: {e}")
-                    print("!! THIS IS VERY BAD CHECK CODE !!")
         except Exception as e:
             self.logger.error(e)
     def get_key_price(self): # Native pricer version (see pricelist.py for external API version)
@@ -341,6 +336,8 @@ class Pricer:
             "buy": self.to_currencies(buy_halfscrap, key_buy_price),
             "sell": self.to_currencies(sell_halfscrap, key_sell_price)
         }
+        if sku["sku"] == "5021;6":
+            currencies = self.remove_keys(currencies)
         if currencies["buy"] == currencies["sell"]: # Migitate this issue by just tweaking the halfscraps a little
             if self.allow_conversion_fix:
                 buy_halfscrap -= 1
@@ -349,6 +346,8 @@ class Pricer:
                     "buy": self.to_currencies(buy_halfscrap, key_buy_price),
                     "sell": self.to_currencies(sell_halfscrap, key_sell_price),
                 }
+                if sku["sku"] == "5021;6":
+                    currencies = self.remove_keys(currencies)
                 if currencies["buy"] == currencies["sell"]: # Attempt 2
                     buy_halfscrap -= 1
                     sell_halfscrap += 1
@@ -356,6 +355,8 @@ class Pricer:
                         "buy": self.to_currencies(buy_halfscrap, key_buy_price),
                         "sell": self.to_currencies(sell_halfscrap, key_sell_price),
                     }
+                    if sku["sku"] == "5021;6":
+                        currencies = self.remove_keys(currencies)
             else:
                 raise PricerException({
                     "reason": "Buy price is the same as the sell price after conversion."
@@ -372,22 +373,14 @@ class Pricer:
         }
     
     # Helper functions
-    def format_key(self, price: dict): # Convert the key to pure metal (Only during native pricing)
-        ## ALERT ALERT LEGACY CODE DO NOT TOUCH ##
-        price["buy"]["metal"] = self.to_metal(price["buy"], self.pricelist.key_price["buy"])
-        price["sell"]["metal"] = self.to_metal(price["sell"], self.pricelist.key_price["sell"])
-        price["buy"]["keys"] = 0
-        price["sell"]["keys"] = 0
+    def remove_keys(self, price: dict): # Convert a price into JUST metal (Obviously for keys)
+        price["buy"] = self.to_currencies(self.to_halfscrap(price["buy"], self.pricelist.key_price["buy"]), {"metal": 0})
+        price["sell"] = self.to_currencies(self.to_halfscrap(price["sell"], self.pricelist.key_price["sell"]), {"metal": 0})
         return price
     def calculate_percentage_difference(self, value1, value2):
         if value1 == 0:
             return 0 if value2 == 0 else 100  # Handle division by zero
         return ((value2 - value1) / abs(value1)) * 100
-    def to_metal(self, currencies: dict, key_price: dict):
-        metal = 0
-        metal += currencies.get("keys", 0) * key_price["metal"]
-        metal += currencies.get("metal", 0)
-        return self.get_right(metal)
     def to_halfscrap(self, currencies: dict, key_price: dict): # Convert to our beloved halfscrap
         halfscrap = 0
         halfscrap += currencies.get("keys", 0) * round(key_price["metal"] * 18)
@@ -395,7 +388,10 @@ class Pricer:
         return halfscrap
     def to_currencies(self, halfscrap: int, key_price: dict):
         currencies = {}
-        currencies["keys"] = round(halfscrap // round(key_price["metal"] * 18))
+        if key_price["metal"] == 0:
+            currencies["keys"] = 0
+        else:
+            currencies["keys"] = round(halfscrap // round(key_price["metal"] * 18))
         # Remove the round and you have the ability to determine if a get_right will be accurate or not
         #halfscrap -= currencies["keys"] * round(key_price["metal"] * 18)
         currencies["metal"] = float(f"{(halfscrap - currencies['keys'] * round(key_price['metal'] * 18)) / 18:.2f}")
