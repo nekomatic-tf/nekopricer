@@ -5,6 +5,7 @@ from src.database import ListingDBManager
 from asyncio import new_event_loop
 from src.helpers import set_interval_and_wait, set_interval
 from src.pricelist import Pricelist
+from src.currencies import Currencies
 from math import floor
 from time import time
 
@@ -158,8 +159,8 @@ class Pricer:
         buy_listings = [listing for listing in buy_listings if "usd" not in listing["currencies"]]
         sell_listings = [listing for listing in sell_listings if "usd" not in listing["currencies"]]
         # Sort from lowest to high and highest to low
-        buy_listings = sorted(buy_listings, key=lambda x: self.to_halfscrap(x["currencies"], self.pricelist.key_price["buy"]), reverse=True)
-        sell_listings = sorted(sell_listings, key=lambda x: self.to_halfscrap(x["currencies"], self.pricelist.key_price["sell"]))
+        buy_listings = sorted(buy_listings, key=lambda x: Currencies(x["currencies"]).toValue(self.pricelist.key_price["buy"]["metal"]), reverse=True)
+        sell_listings = sorted(sell_listings, key=lambda x: Currencies(x["currencies"]).toValue(self.pricelist.key_price["sell"]["metal"]))
         # Remove blocked attributes by their defindex (if they aren't a paint)
         if not sku["name"] in self.paints:
             bad_listings = []
@@ -186,8 +187,9 @@ class Pricer:
         key_buy_price = self.pricelist.key_price["buy"]
         key_sell_price = self.pricelist.key_price["sell"]
 
-        buy_halfscrap = 0
-        sell_halfscrap = 0
+        buy_scrap = 0
+        sell_scrap = 0
+
         external_price = self.pricelist.get_external_price(sku) # Get the external price
         '''
         Nekopricer Documentation / rant
@@ -204,6 +206,7 @@ class Pricer:
             raise Exception("Not enough buy listings to calculate from.")
         elif len(sell_listings) < self.sell_limit and self.sell_limit_strict == True:
             raise Exception("Not enough sell listings to calculate from.")
+
         # Begin operations
         # This is a NetBurst CPU pipeline please be patient
         strategy = {
@@ -215,11 +218,11 @@ class Pricer:
             cut_buy = all(x["currencies"] == buy_listings[0]["currencies"] for x in buy_listings[:self.buy_limit])
             cut_sell = all(x["currencies"] == sell_listings[0]["currencies"] for x in sell_listings[:self.sell_limit])
             if cut_buy and cut_sell:
-                buy_halfscrap = self.to_halfscrap(buy_listings[0]["currencies"], key_buy_price)
-                sell_halfscrap = self.to_halfscrap(sell_listings[0]["currencies"], key_sell_price)
-                if sell_halfscrap - buy_halfscrap > 4:
-                    buy_halfscrap += 2
-                    sell_halfscrap -= 2
+                buy_scrap = Currencies(buy_listings[0]["currencies"]).toValue(key_buy_price["metal"])
+                sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_sell_price["metal"])
+                if sell_scrap - buy_scrap > 2:
+                    buy_scrap += 1
+                    sell_scrap -= 1
                     strategy["type"] = "cut"
                     strategy["valid"] = True
                 else:
@@ -229,11 +232,11 @@ class Pricer:
         # Non-restrictive cutting
         if self.allow_cutting and not strategy["valid"]:
             if not self.buy_limit_strict and not self.sell_limit_strict:
-                buy_halfscrap = self.to_halfscrap(buy_listings[0]["currencies"], key_buy_price)
-                sell_halfscrap = self.to_halfscrap(sell_listings[0]["currencies"], key_sell_price)
-                if sell_halfscrap - buy_halfscrap > 4:
-                    buy_halfscrap += 2
-                    sell_halfscrap -= 2
+                buy_scrap = Currencies(buy_listings[0]["currencies"]).toValue(key_buy_price["metal"])
+                sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_sell_price["metal"])
+                if sell_scrap - buy_scrap > 2:
+                    buy_scrap += 1
+                    sell_scrap -= 1
                     strategy["type"] = "cut_non_strict"
                     strategy["valid"] = True
                 else:
@@ -242,42 +245,41 @@ class Pricer:
                 strategy["type"] = "match"
         # Listing matching
         if self.allow_matching and not strategy["valid"]:
-            buy_halfscrap = self.to_halfscrap(buy_listings[0]["currencies"], key_buy_price)
-            sell_halfscrap = self.to_halfscrap(sell_listings[0]["currencies"], key_sell_price)
-            if not buy_halfscrap == sell_halfscrap and not buy_halfscrap > sell_halfscrap:
-                buy_halfscrap = buy_halfscrap
-                sell_halfscrap = sell_halfscrap
+            buy_scrap = Currencies(buy_listings[0]["currencies"]).toValue(key_buy_price["metal"])
+            sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_sell_price["metal"])
+            if not buy_scrap == sell_scrap and not buy_scrap > sell_scrap:
+                buy_scrap = buy_scrap
+                sell_scrap = sell_scrap
                 strategy["type"] = "match"
                 strategy["valid"] = True
             else:
                 strategy["type"] = "round"
         # Listing rounding
         if self.allow_rounding and not strategy["valid"]:
-            buy_price = { "keys": 0, "metal": 0 }
-            sell_price = { "keys": 0, "metal": 0 }
+            # Reset scraps to zero
+            buy_scrap = 0
+            sell_scrap = 0
+
+            # Buy
             denominator = 0
             for index, listing in enumerate(buy_listings):
                 if index == self.buy_limit:
                     break
                 denominator += 1
-                if "keys" in listing["currencies"]:
-                    buy_price["keys"] += listing["currencies"]["keys"]
-                if "metal" in listing["currencies"]:
-                    buy_price["metal"] += listing["currencies"]["metal"]
-            buy_halfscrap = round(self.to_halfscrap(buy_price, key_buy_price) / denominator)
+                buy_scrap += Currencies(listing["currencies"]).toValue(key_buy_price["metal"])
+            buy_scrap = Currencies({}).round(buy_scrap / denominator)
+            # Sell
             denominator = 0
             for index, listing in enumerate(sell_listings):
                 if index == self.sell_limit:
                     break
                 denominator += 1
-                if "keys" in listing["currencies"]:
-                    sell_price["keys"] += listing["currencies"]["keys"]
-                if "metal" in listing["currencies"]:
-                    sell_price["metal"] += listing["currencies"]["metal"]
-            sell_halfscrap = round(self.to_halfscrap(sell_price, key_sell_price) / denominator)
-            if not buy_halfscrap == sell_halfscrap and not buy_halfscrap > sell_halfscrap:
-                buy_halfscrap = buy_halfscrap
-                sell_halfscrap = sell_halfscrap
+                sell_scrap += Currencies(listing["currencies"]).toValue(key_sell_price["metal"])
+            sell_scrap = Currencies({}).round(sell_scrap / denominator)
+
+            if not buy_scrap == sell_scrap and not buy_scrap > sell_scrap:
+                buy_scrap = buy_scrap
+                sell_scrap = sell_scrap
                 strategy["type"] = "round"
                 strategy["valid"] = True
             else:
@@ -285,7 +287,7 @@ class Pricer:
         # Backing off
         if self.allow_backing and not strategy["valid"]:
             if not self.buy_limit_strict and not self.sell_limit_strict:
-                buy_halfscrap = sell_halfscrap - 2
+                buy_scrap = sell_scrap - 1
                 strategy["type"] = "backing_off"
                 strategy["valid"] = True
             else:
@@ -293,52 +295,53 @@ class Pricer:
         # Duh
         if not strategy["valid"]:
             self.logger.debug("NetBurst pipeline completed with a failure to validate any method of pricing.")
-            self.logger.warn(f"Failed to validate a strategy to price {sku["name"]}/{sku["sku"]}.")
-        
-        # Final checks
-        if buy_halfscrap > sell_halfscrap:
+            self.logger.warning(f"Failed to validate a strategy to price {sku["name"]}/{sku["sku"]}.")
+
+        # Do not use halfscrap unless the total value is < 1 ref (might adjust this later :p)
+        if buy_scrap >= 9 and not buy_scrap.is_integer():
+            buy_scrap -= 0.5
+        if sell_scrap >= 9 and not sell_scrap.is_integer():
+            sell_scrap += 0.5
+
+        # Safety checks
+        # Stage 1 - Scrap
+        if buy_scrap > sell_scrap:
             raise Exception("Buy price is higher than the sell price.")
-        if buy_halfscrap == sell_halfscrap: # Just going to raise an exception for now
+        if buy_scrap == sell_scrap:
             raise Exception("Buy price is the same as the sell price.")
-        if buy_halfscrap == 0:
+        if buy_scrap == 0:
             raise Exception("Buy price cannot be zero.")
-        if sell_halfscrap == 0:
+        if sell_scrap == 0:
             raise Exception("Sell price cannot be zero.")
-        fallback_buy_halfscrap = self.to_halfscrap(external_price["buy"], key_buy_price)
-        fallback_sell_halfscrap = self.to_halfscrap(external_price["sell"], key_sell_price)
-        buy_difference = self.calculate_percentage_difference(fallback_buy_halfscrap, buy_halfscrap)
-        sell_difference = self.calculate_percentage_difference(fallback_sell_halfscrap, sell_halfscrap)
+        if buy_scrap < 0:
+            raise Exception("Buy price cannot be negative.")
+        if sell_scrap < 0:
+            raise Exception("Sell price cannot be negative.")
+        # Stage 2 - Conversion & Currencies
+        currencies = {}
+        currencies["buy"] = Currencies({}).toCurrencies(buy_scrap, None)
+        currencies["sell"] = Currencies({}).toCurrencies(sell_scrap, None)
+        if currencies["buy"] == currencies["sell"]:
+            raise Exception("Buy price is the same as the sell price after conversion to refined.")
+        if not sku["sku"] == "5021;6": # Skip over the key
+            currencies["buy"] = Currencies({}).toCurrencies(buy_scrap, key_buy_price["metal"])
+            currencies["sell"] = Currencies({}).toCurrencies(sell_scrap, key_sell_price["metal"])
+        if currencies["buy"] == currencies["sell"]:
+            raise Exception("Buy price is the same as the sell price after conversion to currencies.")
+        if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) == Currencies(currencies["sell"]).toValue(key_buy_price["metal"]):
+            raise Exception("Buy price is the same as the sell price after conversion back to scrap.")
+        if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) > Currencies(currencies["sell"]).toValue(key_sell_price["metal"]):
+            raise Exception("Buy price is higher than the sell price after conversion back to scrap.")
+        # Stage 3 - Baselines
+        fallback_buy_scrap = Currencies(external_price["buy"]).toValue(key_buy_price["metal"])
+        fallback_sell_scrap = Currencies(external_price["sell"]).toValue(key_sell_price["metal"])
+        buy_difference = self.calculate_percentage_difference(fallback_buy_scrap, buy_scrap)
+        sell_difference = self.calculate_percentage_difference(fallback_sell_scrap, sell_scrap)
         if buy_difference > self.max_percentage_differences["buy"]:
             raise Exception("Pricer is buying for too much.")
         if sell_difference < self.max_percentage_differences["sell"]:
             raise Exception("Pricer is selling for too little.")
-        currencies = {
-            "buy": self.to_currencies(buy_halfscrap, key_buy_price),
-            "sell": self.to_currencies(sell_halfscrap, key_sell_price)
-        }
-        if sku["sku"] == "5021;6":
-            currencies = self.remove_keys(currencies)
-        if currencies["buy"] == currencies["sell"]: # Migitate this issue by just tweaking the halfscraps a little
-            if self.allow_conversion_fix:
-                buy_halfscrap -= 1
-                sell_halfscrap += 1
-                currencies = {
-                    "buy": self.to_currencies(buy_halfscrap, key_buy_price),
-                    "sell": self.to_currencies(sell_halfscrap, key_sell_price),
-                }
-                if sku["sku"] == "5021;6":
-                    currencies = self.remove_keys(currencies)
-                if currencies["buy"] == currencies["sell"]: # Attempt 2
-                    buy_halfscrap -= 1
-                    sell_halfscrap += 1
-                    currencies = {
-                        "buy": self.to_currencies(buy_halfscrap, key_buy_price),
-                        "sell": self.to_currencies(sell_halfscrap, key_sell_price),
-                    }
-                    if sku["sku"] == "5021;6":
-                        currencies = self.remove_keys(currencies)
-            else:
-                raise Exception("Buy price is the same as the sell price after conversion.")
+        
         # We did it, yay
         return {
             "name": sku["name"],
@@ -349,34 +352,7 @@ class Pricer:
             "sell": currencies["sell"],
             "strategy": strategy
         }
-    
-    # Helper functions
-    def remove_keys(self, price: dict): # Convert a price into JUST metal (Obviously for keys)
-        price["buy"] = self.to_currencies(self.to_halfscrap(price["buy"], self.pricelist.key_price["buy"]), {"metal": 0})
-        price["sell"] = self.to_currencies(self.to_halfscrap(price["sell"], self.pricelist.key_price["sell"]), {"metal": 0})
-        return price
     def calculate_percentage_difference(self, value1, value2):
         if value1 == 0:
             return 0 if value2 == 0 else 100  # Handle division by zero
         return ((value2 - value1) / abs(value1)) * 100
-    def to_halfscrap(self, currencies: dict, key_price: dict): # Convert to our beloved halfscrap
-        halfscrap = 0
-        halfscrap += currencies.get("keys", 0) * round(key_price["metal"] * 18)
-        halfscrap += round(currencies.get("metal", 0) * 18)
-        return halfscrap
-    def to_currencies(self, halfscrap: int, key_price: dict):
-        currencies = {}
-        if key_price["metal"] == 0:
-            currencies["keys"] = 0
-        else:
-            currencies["keys"] = round(halfscrap // round(key_price["metal"] * 18))
-        # Remove the round and you have the ability to determine if a get_right will be accurate or not
-        #halfscrap -= currencies["keys"] * round(key_price["metal"] * 18)
-        currencies["metal"] = float(f"{(halfscrap - currencies['keys'] * round(key_price['metal'] * 18)) / 18:.2f}")
-        # Run a get right so it doesn't cut by 0.05 that is NOT something we want
-        currencies["metal"] = self.get_right(currencies["metal"])
-        return currencies
-    def get_right(self, v):
-        i = floor(v)
-        f = round((v - i) / 0.11)
-        return round(i + (f == 9 or f * 0.11), 2)

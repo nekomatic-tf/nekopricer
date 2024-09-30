@@ -122,8 +122,3 @@ class Currencies:
         # Always round the number by aiming at 0
         truncated = self.rounding(number * factor) / factor
         return truncated
-    # Rounds the metal value to the nearest scrap
-    def getRight(self, v: float) -> float:
-        i = math.floor(v)
-        f = round((v - i) / 0.11)
-        return round(i + (f == 9 or f * 0.11), 2)
