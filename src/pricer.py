@@ -55,6 +55,7 @@ class Pricer:
         }
         if not self.enforce_key_fallback == True: # We are allowed to natively price the key, pricelist won't price key for us
             self.logger.info("Key will be priced using the pricer.")
+            self.get_key_price()
             set_interval(self.get_key_price, config["intervals"]["key"])
         set_interval_and_wait(self.price_items, self.price_interval)
         return
@@ -130,6 +131,7 @@ class Pricer:
             "sku": "5021;6",
             "name": "Mann Co. Supply Crate Key"
         })
+        self.pricelist.key_price = self.pricelist.get_price("5021;6")
         self.logger.info("Refreshed price for Mann Co. Supply Crate Key/5021;6.")
         
     def calculate_price(self, sku: dict):
