@@ -334,6 +334,8 @@ class Pricer:
             raise Exception("Buy price is the same as the sell price after conversion back to scrap.")
         if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) > Currencies(currencies["sell"]).toValue(key_sell_price["metal"]):
             raise Exception("Buy price is higher than the sell price after conversion back to scrap.")
+        if currencies["buy"]["keys"] == currencies["sell"]["keys"] and currencies["buy"]["metal"] > currencies["sell"]["metal"]:
+            raise Exception("Buy price is higher than the sell price after a post conversion check.")
         # Stage 3 - Baselines
         fallback_buy_scrap = Currencies(external_price["buy"]).toValue(key_buy_price["metal"])
         fallback_sell_scrap = Currencies(external_price["sell"]).toValue(key_sell_price["metal"])
