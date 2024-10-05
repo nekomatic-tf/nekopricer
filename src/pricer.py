@@ -41,7 +41,6 @@ class Pricer:
         self.buy_human_fallback = config["pricingTolerances"]["buyHumanFallback"]
         self.sell_human_fallback = config["pricingTolerances"]["sellHumanFallback"]
         self.partial_fallback = config["pricingTolerances"]["partialFallback"]
-        self.allow_conversion_fix = config["pricingTolerances"]["allowConversionFix"]
         self.enforce_key_fallback = config["enforceKeyFallback"]
         self.paints = config["paints"]
         self.pricelist = pricelist

@@ -48,8 +48,7 @@
         "sellLimitStrict": true,
         "buyHumanFallback": false,
         "sellHumanFallback": false,
-        "partialFallback": false,
-        "allowConversionFix": false
+        "partialFallback": false
     },
     "enforceKeyFallback": true,
     "excludedSteamIDs": [
