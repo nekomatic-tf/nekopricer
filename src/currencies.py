@@ -11,16 +11,16 @@ class Currencies:
         if math.isnan(self.keys) or math.isnan(self.metal):
             raise Exception("Not a valid currencies object")
         
-        self.metal = self.toRefined(self.toScrap(self.metal))
+        self.metal = Currencies.toRefined(Currencies.toScrap(self.metal))
     # Get the value of the currencies in scrap
     def toValue(self, conversion: float) -> float:
         if conversion == None and not self.keys == 0:
             # The conversion rate is needed because there are keys
             raise Exception("Missing conversion rate for keys in refined")
         
-        value = self.toScrap(self.metal)
+        value = Currencies.toScrap(self.metal)
         if not self.keys == 0:
-            value += self.keys * self.toScrap(conversion)
+            value += self.keys * Currencies.toScrap(conversion)
         
         return value
     # Creates a string that represents this currencies object
@@ -49,23 +49,26 @@ class Currencies:
 
         return json
     # Adds refined together
-    def addRefined(self, *args: float) -> float:
+    @staticmethod
+    def addRefined(*args: float) -> float:
         value = 0
 
         for refined in args:
-            value += self.toScrap(refined)
+            value += Currencies.toScrap(refined)
         
-        metal = self.toRefined(value)
+        metal = Currencies.toRefined(value)
         return metal
     # Rounds a number to the closest step
-    def round(self, number: float) -> float:
+    @staticmethod
+    def round(number: float) -> float:
         step = 0.5
         inv = 1.0 / step
 
         rounded = round(number * inv) / inv
         return rounded
     # Rounds a number up or down if the value is less than 0 or not
-    def rounding(self, number: float) -> float:
+    @staticmethod
+    def rounding(number: float) -> float:
         isPositive = number >= 0
 
         # If we add 0.001 and it is greater than the number rounded up, then we need to round up to fix floating point error
@@ -74,10 +77,11 @@ class Currencies:
     
         return rounded if isPositive else -rounded
     # Converts scrap into a currencies object
-    def toCurrencies(self, value: float, conversion: float) -> dict:
+    @staticmethod
+    def toCurrencies(value: float, conversion: float) -> dict:
         if conversion == None:
             # If the conversion rate is missing, convert the value into refined
-            metal = self.toRefined(value)
+            metal = Currencies.toRefined(value)
 
             currencies = {
                 "keys": 0,
@@ -86,13 +90,13 @@ class Currencies:
             return currencies
         
         # Convert conversion rate into scrap
-        conversion = self.toScrap(conversion)
+        conversion = Currencies.toScrap(conversion)
         # Get the highest amount of keys from the given value
-        keys = self.rounding(value / conversion)
+        keys = Currencies.rounding(value / conversion)
         # Find the value that is remaining
         left = value - keys * conversion
         # Convert the missing value to refined
-        metal = self.toRefined(left)
+        metal = Currencies.toRefined(left)
 
         # Create a new instance of Currencies
         currencies = {
@@ -101,24 +105,27 @@ class Currencies:
         }
         return currencies
     # Coverts scrap to refined
-    def toRefined(self, scrap: float) -> float:
+    @staticmethod
+    def toRefined(scrap: float) -> float:
         # The converstion rate between scrap and refined is 9 scrap/ref
         refined = scrap / 9
         # Truncate it to remove repeating decimals  (10 scrap / 9 scrap/refined = 1.1111...)
         refined = math.trunc(refined * 100) / 100
         return refined
     # Coverts refined to scrap
-    def toScrap(self, refined: float) -> float:
+    @staticmethod
+    def toScrap(refined: float) -> float:
         # Get the estimated amount of scrap
         scrap = refined * 9
         # Round it to the nearest half
         scrap = round(scrap * 2) / 2
         return scrap
     # Truncate a number
-    def truncate(self, number: float) -> float:
+    @staticmethod
+    def truncate(number: float) -> float:
         decimals = 2
         # Get the factor to truncate by
         factor = math.pow(10, decimals)
         # Always round the number by aiming at 0
-        truncated = self.rounding(number * factor) / factor
+        truncated = Currencies.rounding(number * factor) / factor
         return truncated

@@ -268,7 +268,7 @@ class Pricer:
                     break
                 denominator += 1
                 buy_scrap += Currencies(listing["currencies"]).toValue(key_buy_price["metal"])
-            buy_scrap = Currencies({}).round(buy_scrap / denominator)
+            buy_scrap = Currencies.round(buy_scrap / denominator)
             # Sell
             denominator = 0
             for index, listing in enumerate(sell_listings):
@@ -276,7 +276,7 @@ class Pricer:
                     break
                 denominator += 1
                 sell_scrap += Currencies(listing["currencies"]).toValue(key_sell_price["metal"])
-            sell_scrap = Currencies({}).round(sell_scrap / denominator)
+            sell_scrap = Currencies.round(sell_scrap / denominator)
 
             if not buy_scrap == sell_scrap and not buy_scrap > sell_scrap:
                 buy_scrap = buy_scrap
@@ -320,13 +320,13 @@ class Pricer:
             raise Exception("Sell price cannot be negative.")
         # Stage 2 - Conversion & Currencies
         currencies = {}
-        currencies["buy"] = Currencies({}).toCurrencies(buy_scrap, None)
-        currencies["sell"] = Currencies({}).toCurrencies(sell_scrap, None)
+        currencies["buy"] = Currencies.toCurrencies(buy_scrap, None)
+        currencies["sell"] = Currencies.toCurrencies(sell_scrap, None)
         if currencies["buy"] == currencies["sell"]:
             raise Exception("Buy price is the same as the sell price after conversion to refined.")
         if not sku["sku"] == "5021;6": # Skip over the key
-            currencies["buy"] = Currencies({}).toCurrencies(buy_scrap, key_buy_price["metal"])
-            currencies["sell"] = Currencies({}).toCurrencies(sell_scrap, key_sell_price["metal"])
+            currencies["buy"] = Currencies.toCurrencies(buy_scrap, key_buy_price["metal"])
+            currencies["sell"] = Currencies.toCurrencies(sell_scrap, key_sell_price["metal"])
         if currencies["buy"] == currencies["sell"]:
             raise Exception("Buy price is the same as the sell price after conversion to currencies.")
         if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) == Currencies(currencies["sell"]).toValue(key_buy_price["metal"]):
