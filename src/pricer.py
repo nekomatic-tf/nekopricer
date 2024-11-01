@@ -161,7 +161,7 @@ class Pricer:
         sell_listings = [listing for listing in sell_listings if "usd" not in listing["currencies"]]
         # Sort from lowest to high and highest to low
         buy_listings = sorted(buy_listings, key=lambda x: Currencies(x["currencies"]).toValue(self.pricelist.key_price["buy"]["metal"]), reverse=True)
-        sell_listings = sorted(sell_listings, key=lambda x: Currencies(x["currencies"]).toValue(self.pricelist.key_price["sell"]["metal"]))
+        sell_listings = sorted(sell_listings, key=lambda x: Currencies(x["currencies"]).toValue(self.pricelist.key_price["buy"]["metal"]))
         # Remove blocked attributes by their defindex (if they aren't a paint)
         if not sku["name"] in self.paints:
             bad_listings = []
@@ -186,7 +186,6 @@ class Pricer:
             raise Exception("No sell listings were found.")
         # Also filter outliers (SOON)
         key_buy_price = self.pricelist.key_price["buy"]
-        key_sell_price = self.pricelist.key_price["sell"]
 
         buy_scrap = 0
         sell_scrap = 0
@@ -220,7 +219,7 @@ class Pricer:
             cut_sell = all(x["currencies"] == sell_listings[0]["currencies"] for x in sell_listings[:self.sell_limit])
             if cut_buy and cut_sell:
                 buy_scrap = Currencies(buy_listings[0]["currencies"]).toValue(key_buy_price["metal"])
-                sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_sell_price["metal"])
+                sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_buy_price["metal"])
                 if sell_scrap - buy_scrap > 2:
                     buy_scrap += 1
                     sell_scrap -= 1
@@ -234,7 +233,7 @@ class Pricer:
         if self.allow_cutting and not strategy["valid"]:
             if not self.buy_limit_strict and not self.sell_limit_strict:
                 buy_scrap = Currencies(buy_listings[0]["currencies"]).toValue(key_buy_price["metal"])
-                sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_sell_price["metal"])
+                sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_buy_price["metal"])
                 if sell_scrap - buy_scrap > 2:
                     buy_scrap += 1
                     sell_scrap -= 1
@@ -247,7 +246,7 @@ class Pricer:
         # Listing matching
         if self.allow_matching and not strategy["valid"]:
             buy_scrap = Currencies(buy_listings[0]["currencies"]).toValue(key_buy_price["metal"])
-            sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_sell_price["metal"])
+            sell_scrap = Currencies(sell_listings[0]["currencies"]).toValue(key_buy_price["metal"])
             if not buy_scrap == sell_scrap and not buy_scrap > sell_scrap:
                 buy_scrap = buy_scrap
                 sell_scrap = sell_scrap
@@ -275,7 +274,7 @@ class Pricer:
                 if index == self.sell_limit:
                     break
                 denominator += 1
-                sell_scrap += Currencies(listing["currencies"]).toValue(key_sell_price["metal"])
+                sell_scrap += Currencies(listing["currencies"]).toValue(key_buy_price["metal"])
             sell_scrap = Currencies.round(sell_scrap / denominator)
 
             if not buy_scrap == sell_scrap and not buy_scrap > sell_scrap:
@@ -326,18 +325,18 @@ class Pricer:
             raise Exception("Buy price is the same as the sell price after conversion to refined.")
         if not sku["sku"] == "5021;6": # Skip over the key
             currencies["buy"] = Currencies.toCurrencies(buy_scrap, key_buy_price["metal"])
-            currencies["sell"] = Currencies.toCurrencies(sell_scrap, key_sell_price["metal"])
+            currencies["sell"] = Currencies.toCurrencies(sell_scrap, key_buy_price["metal"])
         if currencies["buy"] == currencies["sell"]:
             raise Exception("Buy price is the same as the sell price after conversion to currencies.")
         if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) == Currencies(currencies["sell"]).toValue(key_buy_price["metal"]):
             raise Exception("Buy price is the same as the sell price after conversion back to scrap.")
-        if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) > Currencies(currencies["sell"]).toValue(key_sell_price["metal"]):
+        if Currencies(currencies["buy"]).toValue(key_buy_price["metal"]) > Currencies(currencies["sell"]).toValue(key_buy_price["metal"]):
             raise Exception("Buy price is higher than the sell price after conversion back to scrap.")
         if currencies["buy"]["keys"] == currencies["sell"]["keys"] and currencies["buy"]["metal"] > currencies["sell"]["metal"]:
             raise Exception("Buy price is higher than the sell price after a post conversion check.")
         # Stage 3 - Baselines
         fallback_buy_scrap = Currencies(external_price["buy"]).toValue(key_buy_price["metal"])
-        fallback_sell_scrap = Currencies(external_price["sell"]).toValue(key_sell_price["metal"])
+        fallback_sell_scrap = Currencies(external_price["sell"]).toValue(key_buy_price["metal"])
         buy_difference = self.calculate_percentage_difference(fallback_buy_scrap, buy_scrap)
         sell_difference = self.calculate_percentage_difference(fallback_sell_scrap, sell_scrap)
         if buy_difference > self.max_percentage_differences["buy"]:
