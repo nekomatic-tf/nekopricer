@@ -321,4 +321,3 @@ cython_debug/
 
 # Ignore any environment files or configuration files
 .env
-config.json

@@ -4,10 +4,13 @@ FROM python:$VERSION
 
 LABEL maintainer="joey@nekos.site"
 
-COPY . /app
-
-RUN cd /app && pip install -r requirements.txt
-
 WORKDIR /app
 
-ENTRYPOINT ["python", "-u", "/app/main.py"]
+COPY pyproject.toml .
+COPY poetry.lock .
+COPY README.md .
+COPY nekopricer/ ./nekopricer
+
+RUN pip install -e .
+
+ENTRYPOINT [ "python", "-m", "nekopricer" ]
