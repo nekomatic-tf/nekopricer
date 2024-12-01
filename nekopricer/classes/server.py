@@ -6,6 +6,8 @@ if TYPE_CHECKING:
 from logging import getLogger
 from flask import Flask, Request, request, Response
 from flask_socketio import SocketIO
+from jsonschema import validate
+from ..schemas.options import options_schema
 
 
 class Server:
@@ -118,6 +120,10 @@ class Server:
         if not self.api_authorize_operator(request):
             return Response(status=403)
         data = request.get_json()
+        try:
+            validate(data, options_schema)
+        except Exception:
+            return Response(status=406)
         self.pricer.options.jsonOptions = data
         self.pricer.options.saveOptions()
         return Response(status=200)
