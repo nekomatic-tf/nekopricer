@@ -52,7 +52,7 @@ class Snapshots:
         for item in item_names:
             try:
                 self.update_snapshot(item)
-                self.logger.info(f"({completed} / {total}) Refresh snapshot for {item}")
+                self.logger.info(f"({completed} / {total}) Refreshed snapshot for {item}")
                 completed += 1
             except Exception as e:
                 completed += 1
@@ -92,7 +92,6 @@ class Snapshots:
 
         if response.status_code == 429:
             self.logger.warning("Recieved error code 429 from backpack.tf.")
-            self.logger.debug("Slowing down...")
             sleep(5)
             return
 
