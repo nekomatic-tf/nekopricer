@@ -281,18 +281,18 @@ class Pricelist:
 
     # Loops
     def fetch_external_pricelist_loop(self):
-        delay = self.pricer.options.jsonOptions["intervals"]["pricelist"]
-        self.logger.debug(f"Fetching external pricelist again in {delay} seconds.")
-        sleep(delay)
-        self.fetch_external_pricelist()
-        self.fetch_external_pricelist_loop()
+        while True: # This might be changed to some kind of global bool eventually
+            delay = self.pricer.options.jsonOptions["intervals"]["pricelist"]
+            self.logger.debug(f"Fetching external pricelist again in {delay} seconds.")
+            sleep(delay)
+            self.fetch_external_pricelist()
 
     def refresh_key_price_loop(self):
-        delay = self.pricer.options.jsonOptions["intervals"]["key"]
-        self.logger.debug(f"Refreshing key price again in {delay} seconds.")
-        sleep(delay)
-        self.refresh_key_price()
-        self.refresh_key_price_loop()
+        while True:
+            delay = self.pricer.options.jsonOptions["intervals"]["key"]
+            self.logger.debug(f"Refreshing key price again in {delay} seconds.")
+            sleep(delay)
+            self.refresh_key_price()
 
     # Helpers
     def to_sku(self, name: str) -> str:

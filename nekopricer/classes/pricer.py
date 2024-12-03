@@ -59,11 +59,11 @@ class Pricer:
         self.database.close_connection()
 
     def price_items_loop(self):
-        delay = self.options.jsonOptions["intervals"]["price"]
-        self.logger.debug(f"Pricing items again in {delay} seconds.")
-        sleep(delay)
-        self.price_items()
-        self.price_items_loop()
+        while True:
+            delay = self.options.jsonOptions["intervals"]["price"]
+            self.logger.debug(f"Pricing items again in {delay} seconds.")
+            sleep(delay)
+            self.price_items()
 
     def price_items(self):
         self.statistics = {key: 0 for key in self.statistics}  # Clear all statistics
